@@ -1,6 +1,9 @@
 #ifndef TSOPS_H
 #define TSOPS_H
 
+#include <Arduino.h>
+#include <piCommon.h>
+
 #define STRENGTHFILTER 50
 #define TSOP_COUNT 24
 
@@ -46,44 +49,6 @@
 
 #define MIN_IGNORE_THRESHOLD 5	 //minimum tsop reading to be deemed as valid, anything below is noise
 #define MAX_IGNORE_THRESHOLD 180 //maximum tsop reading to be deemed as valid, anything above is noise or a disconnected sensor
-
-
-/* macros to shift array. Parameters are inclusive. For example:
-   int array[] =                  { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-   ARRAYSHIFTUP(array, 2, 6)   => { 1, 2, 3, 3, 4, 5, 6, 7, 9, 10 };
-   ARRAYSHIFTDOWN(array, 2, 6) => { 1, 3, 4, 5, 6, 7, 7, 8, 9, 10 }; */
-
-#define ARRAYSHIFTUP(a, lower, upper){            \
-    if (lower == 0){                              \
-        for (int q = lower; q < upper; q++){      \
-            *(a + q) = *(a + q + 1); }            \
-    } else{                                       \
-        for (int q = lower - 1; q < upper; q++){  \
-            *(a + q) = *(a + q + 1); }}}          \
-
-#define ARRAYSHIFTDOWN(a, lower, upper){          \
-    if (upper == (sizeof(a)/sizeof(a[0])) - 1){   \
-        for (int q = upper - 1; q >= lower; q--){ \
-            *(a + q + 1) = *(a + q); }            \
-    } else{                                       \
-        for (int q = upper; q >= lower; q--){     \
-            *(a + q + 1) = *(a + q); }}}          \
-
-#define ARRAYAVERAGE(a, out){                         \
-    int average = 0;                                  \
-    for (int i = 0; i < sizeof(a)/sizeof(a[0]); i++){ \
-    	average += a[i];}                             \
-    out = average/(sizeof(a)/sizeof(a[0]));}          \
-
-// get mid index of two indexes in the domain [0, TSOP_COUNT - 1]
-#define GETMIDINDEX(a, b, index){               \
-	if (abs(a - b) > TSOP_COUNT / 2){           \
-		index = ((a + b) / 2 + TSOP_COUNT / 2); \
-		if (index >= TSOP_COUNT){               \
-			index -= TSOP_COUNT; }              \
-	} else{                                     \
-		index = (a + b) / 2; }}                 \
-
 
 
 // faster method for atan2 ?
@@ -136,10 +101,6 @@
 // 	}
 // 	return atan;
 // }
-
-#define CLEARARRAY(a){                                \
-	for (int q = 0; q < sizeof(a)/sizeof(a[0]); q++){ \
-		a[q] = 0; }}                                  \
 
 inline int mod(int x, int m){
     int r = x % m;
@@ -205,7 +166,6 @@ public:
 
 			temp = sin(temp_angle) * 4095.0f;			
 			scaledSin[i] = temp;
-			Serial.println(temp_angle);
 		}
 		
 		unlock();

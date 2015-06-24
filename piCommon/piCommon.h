@@ -45,11 +45,13 @@ enum SLAVE2_COMMANDS{
 
 enum SLAVE3_COMMANDS{
 	SLAVE3_CHECK_STATUS,
+
 	MOVE1,	  // action: moves motors ; returns: current sense
 	MOVE2,	  // action: moves motors ; returns: current sense
 	MOVE3,	  // action: moves motors ; returns: current sense
 	MOVE4,	  // action: moves motors ; returns: current sense
 	MOVE5,	  // action: moves motors ; returns: null (current sense connected to master)
+
 	CSENSE1,  // action: nothing	  ; returns: current sense
 	CSENSE2,  // action: nothing	  ; returns: current sense
 	CSENSE3,  // action: nothing	  ; returns: current sense
@@ -103,21 +105,61 @@ enum LOCATION{
 };
 
 #define TOBEARING180(a){ \
-	if(a > 1800){		\
-		a -= 3600;	   \
+	if(a > 180){		\
+		a -= 360;	   \
 	}					\
-	else if(a <= 1800){  \
-		a += 3600;	   \
+	else if(a <= -180){  \
+		a += 360;	   \
 	}					\
 }
 
 #define TOBEARING360(a){ \
-	if(a >= 3600){	   \
-		a -= 3600;	   \
+	if(a >= 360){	   \
+		a -= 360;	   \
 	}					\
 	else if(a < 0){	  \
-		a += 3600;	   \
+		a += 360;	   \
 	}					\
 }
 
+/* macros to shift array. Parameters are inclusive. For example:
+   int array[] =                  { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+   ARRAYSHIFTUP(array, 2, 6)   => { 1, 2, 3, 3, 4, 5, 6, 7, 9, 10 };
+   ARRAYSHIFTDOWN(array, 2, 6) => { 1, 3, 4, 5, 6, 7, 7, 8, 9, 10 }; */
+
+#define ARRAYSHIFTUP(a, lower, upper){            \
+    if (lower == 0){                              \
+        for (int q = lower; q < upper; q++){      \
+            *(a + q) = *(a + q + 1); }            \
+    } else{                                       \
+        for (int q = lower - 1; q < upper; q++){  \
+            *(a + q) = *(a + q + 1); }}}          \
+
+#define ARRAYSHIFTDOWN(a, lower, upper){          \
+    if (upper == (sizeof(a)/sizeof(a[0])) - 1){   \
+        for (int q = upper - 1; q >= lower; q--){ \
+            *(a + q + 1) = *(a + q); }            \
+    } else{                                       \
+        for (int q = upper; q >= lower; q--){     \
+            *(a + q + 1) = *(a + q); }}}          \
+
+#define ARRAYAVERAGE(a, out){                         \
+    int average = 0;                                  \
+    for (int i = 0; i < sizeof(a)/sizeof(a[0]); i++){ \
+    	average += a[i];}                             \
+    out = average/(sizeof(a)/sizeof(a[0]));}          \
+
+// get mid index of two indexes in the domain [0, TSOP_COUNT - 1]
+#define GETMIDINDEX(a, b, index){               \
+	if (abs(a - b) > TSOP_COUNT / 2){           \
+		index = ((a + b) / 2 + TSOP_COUNT / 2); \
+		if (index >= TSOP_COUNT){               \
+			index -= TSOP_COUNT; }              \
+	} else{                                     \
+		index = (a + b) / 2; }}                 \
+
+#define CLEARARRAY(a){                                \
+	for (int q = 0; q < sizeof(a)/sizeof(a[0]); q++){ \
+		a[q] = 0; }}                                  \
+		
 #endif
