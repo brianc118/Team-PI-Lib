@@ -268,19 +268,28 @@ public:
 		lastCompFilter = 0;
 
 		yaw += gz * dtLastCompFilter / 1000000;
+
+		if (yaw > 180) yaw -= 360;
+		else if (yaw <= -180) yaw += 360;
+
+		Serial.print(yaw);
+		Serial.print('\t');
+		Serial.print(MagYaw);
 		// now check if yaw is similar to MagYaw (i.e. not -179 for yaw and 179 for MagYaw)
-		if (MagYaw > 0){
-			if (yaw < 0){
-				// not good. yaw needs to be positive
-				yaw += 360;
-			}
-		}
-		else{
-			if (yaw > 0){
-				// not good. yaw needs to be negative
-				yaw -= 360;
-			}
-		}
+		// if (MagYaw > 0){
+		// 	if (yaw < 0){
+		// 		// not good. yaw needs to be positive
+		// 		yaw += 360;
+		// 	}
+		// }
+		// else{
+		// 	if (yaw > 0){
+		// 		// not good. yaw needs to be negative
+		// 		yaw -= 360;
+		// 	}
+		// }
+		Serial.print('\t');
+		Serial.print(yaw);
 		// if (yaw <= -180){
 		// 	yaw += 360;
 		// }
@@ -288,6 +297,8 @@ public:
 		// 	yaw -= 360;
 		// }
 		yaw = aa * yaw + (1.0 - aa) * MagYaw;
+		Serial.print('\t');
+		Serial.println(yaw);
 		//yaw = MagYaw;
 		//yaw = yaw + aa * (gz * dtLastCompFilter / 1000000) + (1.0 - aa) * (MagYawRate * dtLastCompFilter / 1000000);
 		//TOBEARING180(yaw);
