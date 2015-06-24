@@ -24,8 +24,8 @@ void setup(){
   SPI_SLAVE.begin_SLAVE(SCK, MOSI, MISO, CS0);
   
   //Set the CTAR0_SLAVE0 (Frame Size, SPI Mode)
-  //SPI_SLAVE.setCTAR_SLAVE(8, SPI_MODE0);
-  SPI_SLAVE.setCTAR_SLAVE(16, SPI_MODE0);
+  SPI_SLAVE.setCTAR_SLAVE(8, SPI_MODE0);
+  //SPI_SLAVE.setCTAR_SLAVE(16, SPI_MODE0);
   
   //Enable the SPI0 Interrupt
   NVIC_ENABLE_IRQ(IRQ_SPI0);
@@ -68,6 +68,6 @@ void loop(){
 void spi0_isr(void){
   
   //Function to handle data
-  //SPI_SLAVE.rxtx8 (data, returnData, dataLength);
-  SPI_SLAVE.rxtx16(data, returnData, dataLength);
+  SPI_SLAVE.rxtx8 (data, returnData, dataLength);
+  //SPI_SLAVE.rxtx16(data, returnData, dataLength);
 }
