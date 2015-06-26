@@ -269,47 +269,29 @@ public:
 
 		yaw += gz * dtLastCompFilter / 1000000;
 
-		if (yaw > 180) yaw -= 360;
-		else if (yaw <= -180) yaw += 360;
+		// the following fixes issues when say yaw is like -175 degrees
+		// while MagYaw is 175 degrees (comp filter should give around 180 degrees)
+		// but it'll move it towards zero
+		if (yaw - MagYaw > 180){
+			MagYaw += 360;
+		}
+		else if (yaw - MagYaw < -180){
+			MagYaw -= 360;
+		}
 
 		Serial.print(yaw);
 		Serial.print('\t');
 		Serial.print(MagYaw);
-		// now check if yaw is similar to MagYaw (i.e. not -179 for yaw and 179 for MagYaw)
-		// if (MagYaw > 0){
-		// 	if (yaw < 0){
-		// 		// not good. yaw needs to be positive
-		// 		yaw += 360;
-		// 	}
-		// }
-		// else{
-		// 	if (yaw > 0){
-		// 		// not good. yaw needs to be negative
-		// 		yaw -= 360;
-		// 	}
-		// }
+
 		Serial.print('\t');
-		Serial.print(yaw);
-		// if (yaw <= -180){
-		// 	yaw += 360;
-		// }
-		// else if (yaw > 180){
-		// 	yaw -= 360;
-		// }
+		Serial.print(gz);
+
 		yaw = aa * yaw + (1.0 - aa) * MagYaw;
+		
+		TOBEARING180(yaw);
+
 		Serial.print('\t');
 		Serial.println(yaw);
-		//yaw = MagYaw;
-		//yaw = yaw + aa * (gz * dtLastCompFilter / 1000000) + (1.0 - aa) * (MagYawRate * dtLastCompFilter / 1000000);
-		//TOBEARING180(yaw);
-
-		// Serial.print(gz, 6);
-		// Serial.print('\t');
-		// Serial.print(MagYaw, 6);
-		// Serial.print('\t');
-		// Serial.print(atan2(mx,my) * 180/PI);
-		// Serial.print('\t');
-		// Serial.println(yaw);
 	}	
 
 	void preCalculateCalibParams(){
