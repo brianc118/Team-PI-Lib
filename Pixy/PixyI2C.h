@@ -28,14 +28,16 @@
 #include "TPixy.h"
 #include "i2c_t3.h"
 
-#define PIXY_I2C_DEFAULT_ADDR           0x54  
+#define PIXY_I2C_TIMOUT 500
+#define PIXY_I2C_DEFAULT_ADDR 0x54
 
 class LinkI2C
 {
 public:
   void init()
   {
-    Wire.begin();
+    // scrap this
+    // Wire.begin();
   }
   void setArg(uint16_t arg)
   {
@@ -48,7 +50,7 @@ public:
   {
     uint16_t w;
   	uint8_t c;
-  	Wire.requestFrom((int)addr, 2);
+  	Wire.requestFrom((int)addr, 2, I2C_STOP, PIXY_I2C_TIMOUT);
     c = Wire.read();
     w = Wire.read();
     w <<= 8;
@@ -65,7 +67,7 @@ public:
   {
     Wire.beginTransmission(addr);
     Wire.write(data, len);
-  	Wire.endTransmission();
+  	Wire.endTransmission(I2C_STOP, PIXY_I2C_TIMOUT);
   	return len;
   }
 	
