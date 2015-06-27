@@ -29,16 +29,20 @@
 class LIGHTARRAY{
 public:
 	uint8_t lightData[16] = {0};	// Light sensor data array
-	uint8_t pLightData[16] = {0};	// previous data
-	uint8_t ppLightData[16] = {0};	// even earlier data
+	
 	uint8_t refData[16] = {0};
 	uint8_t white[16] = {0};
 	uint8_t green[16] = {0};
+
+	uint8_t colours[16] = {0};
+	uint8_t pColours[16] = {0};	// previous data
+	uint8_t ppColours[16] = {0};	// even earlier data
 	
 	uint8_t lineLocation = 0;
 
 	void init(){
 		analogReference(EXTERNAL);
+
 		pinMode(L1,		INPUT);
 		pinMode(L2,		INPUT);
 		pinMode(L3,		INPUT);
@@ -55,14 +59,12 @@ public:
 		pinMode(L14,	INPUT);
 		pinMode(L15,	INPUT);
 		pinMode(L16,	INPUT);
+
+		loadCalibData();
 	}
 	void read(){
 		analogReadResolution(8);	// 8 bits of resolution is enough for differentiating between black white and green
-		analogReadAveraging(10);	// averaging DOES NOT EFFECT PERFORMANCE. It is performed on the ADC, not on the uC
-
-		
-		memcpy(&ppLightData, pLightData, 16 * sizeof(lightData[0]));
-		memcpy(&pLightData, lightData, 16 * sizeof(lightData[0]));
+		analogReadAveraging(0);	// averaging DOES NOT EFFECT PERFORMANCE. It is performed on the ADC, not on the uC
 
 		lightData[0]	= analogRead(L1);
 		lightData[1]	= analogRead(L2);
@@ -80,6 +82,13 @@ public:
 		lightData[13]	= analogRead(L14);
 		lightData[14]	= analogRead(L15);
 		lightData[15]	= analogRead(L16);
+	}
+	void getColours(){
+		for (int i = 0; i < 16; i++){
+			colours[i] = lightData[i] > refData[i] ? 1 : 0;
+		}
+		memcpy(&ppColours, pColours, 16 * sizeof(colours[0]));
+		memcpy(&pColours, colours, 16 * sizeof(colours[0]));
 	}	
 	void calibWhite(){
 		read();
@@ -95,8 +104,21 @@ public:
 	}
 	void endCalib(){
 		for (int i = 0; i < 16; i++){
-			refData[i] = (white[i] + green[i])/2;
+			if (white[i] > green[i] + 5){
+				refData[i] = (white[i] + green[i])/2;
+			}
+			else{
+				// data isn't good enough
+				refData[i] = 255;
+			}
 		}
+		saveCalibData();
+	}
+	void saveCalibData(){
+		EEPROM_writeAnything(100,  refData);
+	}
+	void loadCalibData(){
+		EEPROM_readAnything(100,  refData);
 	}
 
 private:
