@@ -38,6 +38,11 @@ public:
 	uint8_t pColours[16] = {0};	// previous data
 	uint8_t ppColours[16] = {0};	// even earlier data
 	
+	uint8_t armFrontSum = 0;
+	uint8_t armBackSum = 0;
+	uint8_t armLeftSum = 0;
+	uint8_t armRightSum = 0;
+
 	uint8_t lineLocation = 0;
 
 	void init(){
@@ -87,6 +92,11 @@ public:
 		for (int i = 0; i < 16; i++){
 			colours[i] = lightData[i] > refData[i] ? 1 : 0;
 		}
+		armFrontSum = colours[0] + colours[2] + colours[1] + colours[3]; // include light sensor 4
+		armBackSum = colours[9] + colours[11] + colours[13] + colours[8];
+		armRightSum = colours[7] + colours[6] + colours[5] + colours[4];
+		armLeftSum = colours[15] + colours[14] + colousr[10] + colours[12];
+
 		memcpy(&ppColours, pColours, 16 * sizeof(colours[0]));
 		memcpy(&pColours, colours, 16 * sizeof(colours[0]));
 	}	
