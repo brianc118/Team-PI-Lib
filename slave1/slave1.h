@@ -279,19 +279,19 @@ public:
 			MagYaw -= 360;
 		}
 
-		Serial.print(yaw);
-		Serial.print('\t');
-		Serial.print(MagYaw);
+		// Serial.print(yaw);
+		// Serial.print('\t');
+		// Serial.print(MagYaw);
 
-		Serial.print('\t');
-		Serial.print(gz);
+		// Serial.print('\t');
+		// Serial.print(gz);
 
 		yaw = aa * yaw + (1.0 - aa) * MagYaw;
 		
 		TOBEARING180(yaw);
 
-		Serial.print('\t');
-		Serial.println(yaw);
+		// Serial.print('\t');
+		// Serial.println(yaw);
 	}	
 
 	void preCalculateCalibParams(){
