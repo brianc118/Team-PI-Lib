@@ -6,7 +6,6 @@
 #include <EEPROM.h>
 #include <EEPROMAnything.h>
 #include <SPI.h>
-#include <Wire.h>
 #include <SFE_LSM9DS0.h>
 
 #define L1 		A7
@@ -92,10 +91,10 @@ public:
 		for (int i = 0; i < 16; i++){
 			colours[i] = lightData[i] > refData[i] ? 1 : 0;
 		}
-		armFrontSum = colours[0] + colours[2] + colours[1] + colours[3]; // include light sensor 4
-		armBackSum = colours[9] + colours[11] + colours[13] + colours[8];
-		armRightSum = colours[7] + colours[6] + colours[5] + colours[4];
-		armLeftSum = colours[15] + colours[14] + colousr[10] + colours[12];
+		armFrontSum = colours[0]  + colours[2]  + colours[1]  + colours[3]; // include light sensor 4
+		armBackSum  = colours[9]  + colours[11] + colours[13] + colours[8];
+		armRightSum = colours[7]  + colours[6]  + colours[5]  + colours[4];
+		armLeftSum  = colours[15] + colours[14] + colours[10] + colours[12];
 
 		memcpy(&ppColours, pColours, 16 * sizeof(colours[0]));
 		memcpy(&pColours, colours, 16 * sizeof(colours[0]));
@@ -114,7 +113,7 @@ public:
 	}
 	void endCalib(){
 		for (int i = 0; i < 16; i++){
-			if (white[i] > green[i] + 5){
+			if (white[i] > green[i] + 2 && (white[i] + green[i])/2 > 150){
 				refData[i] = (white[i] + green[i])/2;
 			}
 			else{
