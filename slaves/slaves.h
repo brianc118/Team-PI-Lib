@@ -122,19 +122,19 @@ public:
 	}
 
 	// send and receive 16 bit data
-	uint16_t txrx16(int16_t command, uint8_t out1 = 0, uint8_t out2 = 0){
+	uint16_t txrx16(uint8_t command, uint8_t out1 = 0, uint8_t out2 = 0){
 		uint8_t in1, in2;
 		SPI.beginTransaction(SPISettings(SPI_CLOCK, MSBFIRST, SPI_MODE0));
 		digitalWriteFast(cs, LOW);
 
 		SPI.transfer(command);
-		delayMicroseconds(50);
+		delayMicroseconds(1);
 
 		in1 = SPI.transfer(out1);
-		delayMicroseconds(50);
+		delayMicroseconds(1);
 
 		in2 = SPI.transfer(out2);
-
+		SPI.transfer(0);
 		digitalWriteFast(cs, HIGH);
 		SPI.endTransaction();
 
