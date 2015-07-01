@@ -200,7 +200,7 @@ public:
 		pinMode(DRDYG,  INPUT);
 		
 		uint16_t status = LSM9DS0::begin();
-
+		delay(200);
 		LSM9DS0::setAccelScale(LSM9DS0::A_SCALE_2G);
 		LSM9DS0::setGyroScale(LSM9DS0::G_SCALE_245DPS);
 		LSM9DS0::setMagScale(LSM9DS0::M_SCALE_2GS);
