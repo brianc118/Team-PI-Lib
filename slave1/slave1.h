@@ -146,7 +146,6 @@ enum PERIPHERALSTATUS{
 	IMU_LIGHTARRAY_ADNS_ERR
 };
 
-#define GSCALE 1.16 // tune as required
 // Magnetic Declination/Inclination - see
 // http://autoquad.org/wiki/wiki/configuring-autoquad-flightcontroller/autoquad-calibrations/calibration-faq/magnetic-declination-and-inclination/
 // Data acquired from http://magnetic-declination.com
@@ -169,6 +168,7 @@ public:
 	IMU() : LSM9DS0(LSM9DS0_CSG, LSM9DS0_CSXM){};
 	
 	// imu
+	float gScale = 1.16;
 	elapsedMicros lastReadG = 0, lastReadM = 0, lastCompFilter = 0;
 	uint32_t dtG, dtM;
 	float pitch, yaw, roll;
@@ -240,11 +240,16 @@ public:
 		
 		if(digitalReadFast(DRDYG) == HIGH){  // When new gyro data is ready
 			LSM9DS0::readGyro();		   // Read raw gyro data
-			gx = LSM9DS0::calcGyro(LSM9DS0::gx) * GSCALE - gbias[0];   // Convert to degrees per seconds, remove gyro biases
-			gy = LSM9DS0::calcGyro(LSM9DS0::gy) * GSCALE - gbias[1];
-			gz = LSM9DS0::calcGyro(LSM9DS0::gz) * GSCALE - gbias[2];
+
 			dtG = lastReadG;
 			lastReadG = 0;
+			gx = LSM9DS0::calcGyro(LSM9DS0::gx) - gbias[0] * dtG / 1000000;   // Convert to degrees per seconds, remove gyro biases
+			gy = LSM9DS0::calcGyro(LSM9DS0::gy) - gbias[1] * dtG / 1000000;
+			gz = LSM9DS0::calcGyro(LSM9DS0::gz) - gbias[2] * dtG / 1000000;
+			gx *= gScale;
+			gy *= gScale;
+			gz *= gScale;
+			
 		}
 		
 		if(digitalReadFast(INT1XM) == HIGH){  // When new accelerometer data is ready
