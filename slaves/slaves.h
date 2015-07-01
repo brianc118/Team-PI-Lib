@@ -186,37 +186,37 @@ public:
 	// 	data[23] = txrx(SLAVE2_COMMANDS::TSOP_DATA23);
 	// }
 
-	int16_t getTSOP_ANGLE(){
-		uint8_t high =  txrx(SLAVE2_COMMANDS::TSOP_ANGLE_HIGH);
-		uint8_t low =  txrx(SLAVE2_COMMANDS::TSOP_ANGLE_LOW);
-		return high | (low << 8);
-	}
 	uint8_t getTSOP_ANGLE_BYTE(){
 		return txrx(SLAVE2_COMMANDS::TSOP_ANGLE_BYTE);
 	}
 	uint8_t getTSOP_STRENGTH(){
 		return txrx(SLAVE2_COMMANDS::TSOP_STRENGTH);
 	}
-	uint8_t getTSOPAngleStrength(uint8_t &angle, uint8_t &strength){
-		uint8_t one, two, three;
+	uint8_t getTSOPAngleStrength(int16_t &angle, uint8_t &strength){
+		uint8_t one, two, three, four;
 
 		SPI.beginTransaction(SPISettings(SPI_CLOCK, MSBFIRST, SPI_MODE0));
 		digitalWriteFast(cs, LOW);
-		delayMicroseconds(1);
 
-		one = SPI.transfer(SLAVE2_COMMANDS::TSOP_ANGLE_BYTE);
+		one = SPI.transfer(SLAVE2_COMMANDS::TSOP_ANGLE_HIGH);
 		delayMicroseconds(50);
-		two = SPI.transfer(SLAVE2_COMMANDS::TSOP_STRENGTH);
+		two = SPI.transfer(SLAVE2_COMMANDS::TSOP_ANGLE_LOW);
 		delayMicroseconds(50);
-		three = SPI.transfer(0);
+		three = SPI.transfer(SLAVE2_COMMANDS::TSOP_STRENGTH);
+		delayMicroseconds(50);
+		four = SPI.transfer(0);
 
 		digitalWriteFast(cs, HIGH);
 		SPI.endTransaction();
 
-		Serial.print(one); Serial.print('\t');
-		Serial.print(two); Serial.print('\t');
-		Serial.println(three);
-		return three;
+		// Serial.print(one); Serial.print('\t');
+		// Serial.print(two); Serial.print('\t');
+		// Serial.print(three); Serial.print('\t');
+		// Serial.println(four);
+
+		angle = three | (two << 8);
+		strength = four;
+		return four;
 	}
 };
 
