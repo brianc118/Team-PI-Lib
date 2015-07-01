@@ -339,14 +339,17 @@ public:
 	}	
 
 	void preCalculateCalibParams(){
+		MagOffsetX = (MagMinX + MagMaxX) / 2.0;
+		MagOffsetY = (MagMinY + MagMaxY) / 2.0;
+		MagOffsetZ = (MagMinZ + MagMaxZ) / 2.0;
 		// soft iron error correction
-		float VMaxX = MagMaxX - ((MagMinX + MagMaxX)/2.0);
-		float VMaxY = MagMaxY - ((MagMinY + MagMaxY)/2.0);
-		float VMaxZ = MagMaxZ - ((MagMinZ + MagMaxZ)/2.0);
+		float VMaxX = MagMaxX - MagOffsetX;
+		float VMaxY = MagMaxY - MagOffsetY;
+		float VMaxZ = MagMaxZ - MagOffsetZ;
 
-		float VMinX = MagMinX - ((MagMinX + MagMaxX)/2.0);
-		float VMinY = MagMinY - ((MagMinY + MagMaxY)/2.0);
-		float VMinZ = MagMinZ - ((MagMinZ + MagMaxZ)/2.0);
+		float VMinX = MagMinX - MagOffsetX;
+		float VMinY = MagMinY - MagOffsetY;
+		float VMinZ = MagMinZ - MagOffsetZ;
 
 		float avgX = (VMaxX - VMinX)/2;
 		float avgY = (VMaxY - VMinY)/2;
@@ -359,9 +362,7 @@ public:
 		MagScaleY = avgRadius/avgY;
 		MagScaleZ = avgRadius/avgZ;
 
-		MagOffsetX = (MagMinX + MagMaxX) / 2.0;
-		MagOffsetY = (MagMinY + MagMaxY) / 2.0;
-		MagOffsetZ = (MagMinZ + MagMaxZ) / 2.0;
+		
 	}
 
 	void initCalibMagRoutine(){
