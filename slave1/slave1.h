@@ -377,15 +377,21 @@ public:
 		MagScaleZ = 1;
 
 		// wait for magnetometer data to come
-		while(digitalReadFast(INT2XM) == LOW){};
+		// while(digitalReadFast(INT2XM) == LOW){};
 
-		LSM9DS0::readMag();		   // Read raw magnetometer data
-		MagMinX = LSM9DS0::calcMag(LSM9DS0::mx);
-		MagMinY = LSM9DS0::calcMag(LSM9DS0::my);
-		MagMinZ = LSM9DS0::calcMag(LSM9DS0::mz);
-		MagMaxX = MagMinX;
-		MagMaxY = MagMinY;
-		MagMaxZ = MagMinZ;
+		// LSM9DS0::readMag();		   // Read raw magnetometer data
+		// MagMinX = LSM9DS0::calcMag(LSM9DS0::mx);
+		// MagMinY = LSM9DS0::calcMag(LSM9DS0::my);
+		// MagMinZ = LSM9DS0::calcMag(LSM9DS0::mz);
+		// MagMaxX = MagMinX;
+		// MagMaxY = MagMinY;
+		// MagMaxZ = MagMinZ;
+		MagMinX = 100;
+		MagMinY = 100;
+		MagMinZ = 100;
+		MagMaxX = -100;
+		MagMaxY = -100;
+		MagMaxZ = -100;
 	}
 	// calibrate magnetomer. Please just rotate the magnetometer around
 	// until you get pretty much every angle!
