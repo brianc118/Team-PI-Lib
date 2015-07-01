@@ -243,9 +243,9 @@ public:
 
 			dtG = lastReadG;
 			lastReadG = 0;
-			gx = LSM9DS0::calcGyro(LSM9DS0::gx) - gbias[0] * dtG / 1000000;   // Convert to degrees per seconds, remove gyro biases
-			gy = LSM9DS0::calcGyro(LSM9DS0::gy) - gbias[1] * dtG / 1000000;
-			gz = LSM9DS0::calcGyro(LSM9DS0::gz) - gbias[2] * dtG / 1000000;
+			gx = LSM9DS0::calcGyro(LSM9DS0::gx) - gbias[0];   // Convert to degrees per seconds, remove gyro biases
+			gy = LSM9DS0::calcGyro(LSM9DS0::gy) - gbias[1];
+			gz = LSM9DS0::calcGyro(LSM9DS0::gz) - gbias[2];
 			gx *= gScale;
 			gy *= gScale;
 			gz *= gScale;
