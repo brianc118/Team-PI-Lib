@@ -264,7 +264,17 @@ public:
 			mx = LSM9DS0::calcMag(LSM9DS0::mx);	 // Convert to Gauss and correct for calibration
 			my = LSM9DS0::calcMag(LSM9DS0::my);
 			mz = LSM9DS0::calcMag(LSM9DS0::mz);
-			
+			// Serial.print(MagOffsetX);
+			// Serial.print('\t');
+			// Serial.print(MagOffsetY);
+			// Serial.print('\t');
+			// Serial.print(MagScaleX);
+			// Serial.print('\t');
+			// Serial.print(MagScaleY);
+			// Serial.print('\t');
+			// Serial.print(mx, 3);
+			// Serial.print('\t');
+			// Serial.println(my, 3);
 			mx -= MagOffsetX;
 			my -= MagOffsetY;
 			mz -= MagOffsetZ;
