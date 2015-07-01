@@ -209,7 +209,7 @@ public:
 		LSM9DS0::setAccelABW(LSM9DS0::A_ABW_50); // Choose lowest filter setting for low noise
 		LSM9DS0::setGyroODR(LSM9DS0::G_ODR_760_BW_100);  // Set gyro update rate to 190 Hz with the smallest bandwidth for low noise
 		LSM9DS0::setMagODR(LSM9DS0::M_ODR_100); // Set magnetometer to update every 80 ms
-		LSM9DS0::calLSM9DS0(gbias, abias);
+		LSM9DS0::calLSM9DS0(gbias, abias); // not there is a 1s delay with this function
 		yaw = atan2(mx,my) * 180/PI;
 		lMagYaw = yaw;
 	}
@@ -408,14 +408,30 @@ public:
 		EEPROM_readAnything(20, MagMaxZ);
 	}
 
-	// calibrate gyro offset (gbias). Keep robot still for 10s.
-	// void calibGyroDrift(){
-	// 	elapsedMillis calibDriftTime = 0;
-	// 	float dX = 0, dY = 0, dZ = 0;
-	// 	while (calibDriftTime < 10000){
+	// calibrate gyro offset (gbias). Keep robot still for 1s.
+	void calibGyroDrift(){
+		float dx = 0, dy = 0, dz = 0;
+		float temp = gScale;
+		gScale = 1;
+		yaw = 0;
 
-	// 	}
-	// }
+		gbias[0] = 0; gbias[1] = 0; gbias[2] = 0;
+		while(!Serial.available()){};
+		while(Serial.available()){Serial.read();}
+
+		elapsedMicros calibDriftTime = 0;
+		calibDriftTime = 0;
+		while (calibDriftTime < 1000000){
+			read();
+			complementaryFilterBearing(1); // full gyro
+		}
+		//gbias[2] = yaw;
+		Serial.print(gbias[0]);
+		Serial.print('\t');
+		Serial.print(gbias[1]);
+		Serial.print('\t');
+		Serial.println(gbias[2]);
+	}
 };
 
 class SLAVE1 : public HardwareSerial{
