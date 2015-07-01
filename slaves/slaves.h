@@ -108,9 +108,10 @@ public:
 		digitalWriteFast(cs, LOW);
 
 		//delayMicroseconds(1);
-		SPI.transfer(command);
+		//Serial.print(
+			SPI.transfer(command);
+		//	);
 		delayMicroseconds(1); // give slave some time to know what it's going to send back next
-		
 		in = SPI.transfer(out);
 
 		digitalWriteFast(cs, HIGH);
@@ -128,13 +129,13 @@ public:
 		digitalWriteFast(cs, LOW);
 
 		SPI.transfer(command);
-		delayMicroseconds(1);
+		delayMicroseconds(50);
 
 		in1 = SPI.transfer(out1);
-		delayMicroseconds(1);
+		delayMicroseconds(50);
 
 		in2 = SPI.transfer(out2);
-		SPI.transfer(0);
+		//SPI.transfer(0);
 		digitalWriteFast(cs, HIGH);
 		SPI.endTransaction();
 
