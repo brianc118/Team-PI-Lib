@@ -106,7 +106,6 @@ public:
 		uint8_t in;
 		SPI.beginTransaction(SPISettings(SPI_CLOCK, MSBFIRST, SPI_MODE0));
 		digitalWriteFast(cs, LOW);
-
 		//delayMicroseconds(1);
 		//Serial.print(
 			SPI.transfer(command);
@@ -116,7 +115,6 @@ public:
 
 		digitalWriteFast(cs, HIGH);
 		SPI.endTransaction();
-
 		// Serial.print('\t');
 		// Serial.println(in);
 		return in;
