@@ -819,7 +819,7 @@ void ILI9341_t3::drawBitmap(int16_t x, int16_t y,
 size_t ILI9341_t3::write(uint8_t c) {
   if (c == '\n') {
     cursor_y += textsize*8;
-    cursor_x  = 0;
+    cursor_x  = x_offset;
   } else if (c == '\r') {
     // skip em
   } else {
@@ -827,7 +827,7 @@ size_t ILI9341_t3::write(uint8_t c) {
     cursor_x += textsize*6;
     if (wrap && (cursor_x > (_width - textsize*6))) {
       cursor_y += textsize*8;
-      cursor_x = 0;
+      cursor_x = x_offset;
     }
   }
   return 1;
