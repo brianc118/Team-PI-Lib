@@ -210,6 +210,11 @@ public:
 		LSM9DS0::setGyroODR(LSM9DS0::G_ODR_760_BW_100);  // Set gyro update rate to 190 Hz with the smallest bandwidth for low noise
 		LSM9DS0::setMagODR(LSM9DS0::M_ODR_100); // Set magnetometer to update every 80 ms
 		LSM9DS0::calLSM9DS0(gbias, abias); // not there is a 1s delay with this function
+
+		for(int i = 0; i < 10; i++){
+			read();
+			delay(1);
+		}
 		yaw = atan2(mx,my) * 180/PI;
 		lMagYaw = yaw;
 	}
