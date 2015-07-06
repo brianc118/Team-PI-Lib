@@ -199,7 +199,7 @@ public:
 		digitalWriteFast(cs, LOW);
 
 		one = SPI.transfer(SLAVE2_COMMANDS::TSOP_ANGLE_HIGH);
-		delayMicroseconds(50);
+		delayMicroseconds(150);
 		two = SPI.transfer(SLAVE2_COMMANDS::TSOP_ANGLE_LOW);
 		delayMicroseconds(50);
 		three = SPI.transfer(SLAVE2_COMMANDS::TSOP_STRENGTH);
