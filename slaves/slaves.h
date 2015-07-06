@@ -84,6 +84,12 @@ public:
 			HardwareSerial::read();
 		}
 	}
+	void startCalibMag(){
+		requestPacket(SLAVE1_COMMANDS::CALIB_MAG);
+	}
+	void endCalibMag(){
+		requestPacket(SLAVE1_COMMANDS::END_CALIB_MAG);
+	}
 
 private:
 	elapsedMicros elapsed;
