@@ -22,7 +22,7 @@
 #define TFT_CS 20
 
 // Use hardware SPI (on Uno, #13, #12, #11) and the above for CS/DC
-ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC);
+ILI9341_t3 tft = ILI9341_t3(TFT_CS, TFT_DC, 255, 11, 14, 12);
 
 void setup() {
   tft.begin();
@@ -30,7 +30,15 @@ void setup() {
   tft.setTextColor(ILI9341_YELLOW);
   tft.setTextSize(2);
   tft.println("Waiting for Arduino Serial Monitor...");
-
+  
+  // while(true){
+  //   digitalWrite(TFT_CS, LOW);
+  //   digitalWrite(TFT_DC, LOW);
+  //   delay(3000);
+  //   digitalWrite(TFT_CS, HIGH);
+  //   digitalWrite(TFT_DC, HIGH);
+  //   delay(3000);
+  // }
   Serial.begin(9600);
   while (!Serial) ; // wait for Arduino Serial Monitor
   Serial.println("ILI9341 Test!"); 
