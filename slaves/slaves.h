@@ -21,7 +21,7 @@
 #define SLAVE2_CS 2 	//cs0
 #define SLAVE3_CS 9	   //cs2
 
-#define TIMEOUT 40000	// in uS
+#define TIMEOUT 20000	// in uS
 
 #define SPI_SR_TXCTR		0x0000f000 //Mask isolating the TXCTR
 #define SPI_WAIT() \
