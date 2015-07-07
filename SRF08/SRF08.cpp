@@ -65,10 +65,11 @@ bool SRF08::getRangeIfCan(int16_t &range){
 		Wire.endTransmission(I2C_STOP, SRF08_I2C_TIMOUT);
 
 		Wire.requestFrom(address, 2, I2C_STOP, SRF08_I2C_TIMOUT);                // Request 2 bytes from SRF module
-
+		
 		startRequestTime = micros();
 		while (Wire.available() < 2){
 			if (micros() - startRequestTime > SRF08_I2C_TIMOUT){
+				range = 255;
 				return false;
 			}
 		}                     // Wait for data to arrive
@@ -77,6 +78,13 @@ bool SRF08::getRangeIfCan(int16_t &range){
 
 		range = (highByte << 8) + lowByte;
 		startRange();
+
+		if (range < 3){
+			// can't be less than three
+			range = 255;
+			return false;
+		}
+
 		return true;
 	}
 	else{
