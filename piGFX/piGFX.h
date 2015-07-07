@@ -48,7 +48,7 @@ public:
 	void draw(){
 		uint16_t textWidth = str.length() * (textSize * 5 + 1);
 		uint16_t textHeight = textSize * 8;
-		myTft->fillRect(x1, y1, x2, y2, colour);
+		myTft->fillRect(x1, y1, x2 - x1, y2 - y1, colour);
 		myTft->setTextSize(textSize);
 		myTft->setTextColor(textColour);
 		myTft->setCursor((x1 + x2 - textWidth)/2, (y1 + y2 - textHeight)/2);
