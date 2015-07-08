@@ -113,7 +113,7 @@ public:
 	}
 	void endCalib(){
 		for (int i = 0; i < 16; i++){
-			if (white[i] > green[i] + 2 && (white[i] + green[i])/2 > 150){
+			if (white[i] > green[i] + 2 && (white[i] + green[i])/2 > 80){
 				refData[i] = (white[i] + green[i])/2;
 			}
 			else{
@@ -473,8 +473,7 @@ public:
 	IMU imu;
 
 	PERIPHERALSTATUS peripheralStatus = PERIPHERALSTATUS::NOERRORS;
-	LOCATION location = LOCATION::FIELD;
-	LINELOCATION lineLocation = LINELOCATION::UNKNOWN;
+	LINELOCATION lineLocation = LINELOCATION::FIELD;
 
 	// mouse sensor
 	uint8_t x, y;
