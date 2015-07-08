@@ -34,6 +34,7 @@ void SRF08::getRange(int16_t &range){                // This function gets a ran
 	highByte = Wire.read();                          // Get high byte
 	lowByte = Wire.read();                           // Get low byte
 
+	lastReadTime = 0;
 	range = (highByte << 8) + lowByte;              
 }
 
@@ -41,7 +42,9 @@ void SRF08::startRange(){
 	Wire.beginTransmission(address);             // Start communticating with SRF08
 	Wire.write(CMD);                                 // Send Command Byte
 	Wire.write(0x51);                                // Send 0x51 to start a ranging
-	Wire.endTransmission(I2C_STOP, SRF08_I2C_TIMOUT);
+	if (Wire.endTransmission(I2C_STOP, SRF08_I2C_TIMOUT) != 0){
+		return;
+	}
 	isRanging = true;
 }
 
@@ -56,24 +59,35 @@ bool SRF08::rangeDone(){
 }
 
 bool SRF08::getRangeIfCan(int16_t &range){
+	if (lastReadTime > 100){
+		range = 255;
+	}
 	if (rangeDone()){
 		isRanging = false;
 		Wire.beginTransmission(address);             // start communicating with SRFmodule
 		Wire.write(RANGEBYTE);                           // Call the register for start of ranging data
-		Wire.endTransmission(I2C_STOP, SRF08_I2C_TIMOUT);
+		if (Wire.endTransmission(I2C_STOP, SRF08_I2C_TIMOUT) != 0){
+			// error
+			// range = 255;
+			return false;
+		}
 
-		Wire.requestFrom(address, 2, I2C_STOP, SRF08_I2C_TIMOUT);                // Request 2 bytes from SRF module
+		if (Wire.requestFrom(address, 2, I2C_STOP, SRF08_I2C_TIMOUT) == 0){ // Request 2 bytes from SRF module
+			// error no result.
+			return false;
+		}
 		
 		startRequestTime = micros();
 		while (Wire.available() < 2){
 			if (micros() - startRequestTime > SRF08_I2C_TIMOUT){
-				range = 255;
+				// range = 255;
 				return false;
 			}
 		}                     // Wait for data to arrive
 		highByte = Wire.read();                          // Get high byte
 		lowByte = Wire.read();                           // Get low byte
 
+		lastReadTime = 0;
 		range = (highByte << 8) + lowByte;
 		startRange();
 
@@ -109,13 +123,17 @@ void SRF08::getLight(int16_t &lightReading){                                    
 void SRF08::getSoft(uint8_t &softRev){                                     // Function to get software revision
 	Wire.beginTransmission(address);             // Begin communication with the SRF module
 	Wire.write(CMD);                                 // Sends the command bit, when this bit is read it returns the software revision
-	Wire.endTransmission(I2C_STOP, SRF08_I2C_TIMOUT);
+	if (Wire.endTransmission(I2C_STOP, SRF08_I2C_TIMOUT) != 0){
+		softRev = 255;
+		return;
+	}
 
 	Wire.requestFrom(address, 1, I2C_STOP, SRF08_I2C_TIMOUT);                // Request 1 byte
 	
 	startRequestTime = micros();
 	while (Wire.available() < 1){
 		if (micros() - startRequestTime > SRF08_I2C_TIMOUT){
+			softRev = 255;
 			return;
 		}
 	}    

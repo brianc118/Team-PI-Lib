@@ -34,6 +34,7 @@ class SRF08
 		uint8_t lowByte = 0x00;                              // Stored low byte from ranging
 		bool isRanging = false;
 		unsigned long startRequestTime;
+		elapsedMillis lastReadTime;
 };
 
 #endif
