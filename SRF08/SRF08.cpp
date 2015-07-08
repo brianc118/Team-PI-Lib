@@ -9,7 +9,7 @@
 #include "SRF08.h"
 
 
-#define SRF08_I2C_TIMOUT 500
+#define SRF08_I2C_TIMOUT 300
 
 SRF08::SRF08(uint8_t add){
 	address = add;
