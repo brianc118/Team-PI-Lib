@@ -1,5 +1,5 @@
 // -------------------------------------------------------------------------------------------
-// Teensy3.0/3.1 I2C Timeout Test
+// Teensy3.0/3.1/LC I2C Timeout Test
 // 15May13 Brian (nox771 at gmail.com)
 // -------------------------------------------------------------------------------------------
 //
@@ -42,24 +42,31 @@
 //       DATAx     = data byte read by Master, multiple bytes are read from increasing address
 //       STOP      = I2C STOP sequence
 // -------------------------------------------------------------------------------------------
+// SETRATE - The I2C Master can adjust the Slave configured I2C rate with this command
+//           The command sequence is:
+//
+// START|I2CADDR+W|SETRATE|RATE|STOP
+//
+// where START     = I2C START sequence
+//       I2CADDR+W = I2C Slave address + I2C write flag
+//       SETRATE   = SETRATE command
+//       RATE      = I2C RATE to use (must be from i2c_rate enum list, eg. I2C_RATE_xxxx)
+// -------------------------------------------------------------------------------------------
 
 #include <i2c_t3.h>
-#ifdef I2C_DEBUG
-    #include <rbuf.h> // linker fix
-#endif
 
 // Command definitions
-#define WRITE 0x10
-#define READ  0x20
+#define WRITE    0x10
+#define READ     0x20
+#define SETRATE  0x30
 
 // Function prototypes
 void print_i2c_status(void);
-void print_duration(uint32_t time);
 
 void setup()
 {
-    pinMode(13,OUTPUT); // LED
-    pinMode(12,INPUT_PULLUP); // Control for Test
+    pinMode(LED_BUILTIN,OUTPUT);    // LED
+    pinMode(12,INPUT_PULLUP);       // Control for Test sequence
 
     // Setup for Master mode, pins 18/19, external pullups, 400kHz
     Wire.begin(I2C_MASTER, 0x00, I2C_PINS_18_19, I2C_PULLUP_EXT, I2C_RATE_400);
@@ -69,162 +76,116 @@ void setup()
 
 void loop()
 {
-    uint8_t target1 = 0x44;
+    uint8_t target = 0x44;
+    size_t addr, len;
+    uint8_t databuf[256];
     elapsedMicros deltaT;
     uint32_t hold;
 
     if(digitalRead(12) == LOW)
     {
-        //
-        // Test1 - blocking transmit with timeout
-        //
-        Serial.print("---------------------------------------------------\n");
-        Serial.print("I2C WRITE 8 byte to Slave 0x");
-        Serial.print(target1,HEX);
-        Serial.print(" (50us timeout)\n");
+        digitalWrite(LED_BUILTIN,HIGH);             // LED on
+        Serial.print("---------------------------------------------------------\n");
+        Serial.print("Test1 : Blocking transmit with 50us timeout\n");
+        Serial.print("---------------------------------------------------------\n");
 
-        Wire.beginTransmission(target1);// slave addr
-        Wire.write(WRITE);              // WRITE command
-        Wire.write(0);                  // memory address
-        for(uint8_t i=0; i<8; i++)
-            Wire.write(i);              // fill data buffer
-        digitalWrite(13,HIGH);          // LED on
+        // Writing to Slave --------------------------------------------------------
+        addr = 0;
+        for(len = 0; len < 8; len++)
+            databuf[len] = len;                     // prepare data, set data == address
+        Serial.printf("I2C WRITE 8 bytes to Slave 0x%0X at MemAddr %d (50us timeout)\n", target, addr);
+
+        Wire.beginTransmission(target);             // slave addr
+        Wire.write(WRITE);                          // WRITE command
+        Wire.write(addr);                           // memory address
+        for(len = 0; len < 8; len++)                // write 8 byte block
+            Wire.write(databuf[len]);
         deltaT = 0;
-        Wire.endTransmission(I2C_STOP,50); // blocking Tx with timeout
+        Wire.endTransmission(I2C_STOP,50);          // blocking Tx with 50us timeout
         hold = deltaT;
-        digitalWrite(13,LOW);           // LED off
 
-        print_i2c_status();             // print I2C final status
-        print_duration(hold);           // print duration
+        print_i2c_status();                         // print I2C final status
+        Serial.printf("Duration: %dus\n", hold);    // print duration
+        delay(1);                                   // delay to space out tests
 
-        delay(20); // delay to space out tests
+        Serial.print("---------------------------------------------------------\n");
+        Serial.print("Test2 : Blocking transmit with no timeout\n");
+        Serial.print("---------------------------------------------------------\n");
+        Serial.printf("I2C WRITE 8 bytes to Slave 0x%0X at MemAddr %d (no timeout)\n", target, addr);
 
-        //
-        // Test2 - same blocking transmit but with no timeout
-        //
-        Serial.print("---------------------------------------------------\n");
-        Serial.print("I2C WRITE 8 byte to Slave 0x");
-        Serial.print(target1,HEX);
-        Serial.print(" (no timeout)\n");
-
-        Wire.beginTransmission(target1);// slave addr
-        Wire.write(WRITE);              // WRITE command
-        Wire.write(0);                  // memory address
-        for(uint8_t i=0; i<8; i++)
-            Wire.write(i);              // fill data buffer
-        digitalWrite(13,HIGH);          // LED on
+        Wire.beginTransmission(target);             // slave addr
+        Wire.write(WRITE);                          // WRITE command
+        Wire.write(addr);                           // memory address
+        for(len = 0; len < 8; len++)                // write 8 byte block
+            Wire.write(databuf[len]);
         deltaT = 0;
-        Wire.endTransmission(I2C_STOP); // blocking Tx no timeout
+        Wire.endTransmission(I2C_STOP);             // blocking Tx with no timeout
         hold = deltaT;
-        digitalWrite(13,LOW);           // LED off
 
-        print_i2c_status();             // print I2C final status
-        print_duration(hold);           // print duration
+        print_i2c_status();                         // print I2C final status
+        Serial.printf("Duration: %dus\n", hold);    // print duration
+        delay(1);                                   // delay to space out tests
 
-        delay(20); // delay to space out tests
-
-        //
-        // Test3 - blocking receive with timeout
-        //
-        Serial.print("---------------------------------------------------\n");
-        Serial.print("I2C READ 8 byte from Slave 0x");
-        Serial.print(target1,HEX);
-        Serial.print(" (50us timeout on READ)\n");
+        Serial.print("---------------------------------------------------------\n");
+        Serial.print("Test3 : Blocking receive with 50us timeout\n");
+        Serial.print("---------------------------------------------------------\n");
+        Serial.printf("I2C READ 8 bytes from Slave 0x%0X at MemAddr %d (50us timeout)\n", target, addr);
         Serial.print("Note: resulting timeout duration is longer since this takes 2 commands WRITE then READ\n");
 
-        Wire.beginTransmission(target1);// slave addr
-        Wire.write(READ);               // WRITE command
-        Wire.write(0);                  // memory address
-        digitalWrite(13,HIGH);          // LED on
+        Wire.beginTransmission(target);             // slave addr
+        Wire.write(READ);                           // WRITE command
+        Wire.write(addr);                           // memory address
         deltaT = 0;
-        Wire.endTransmission(I2C_STOP); // blocking Tx
-        Wire.requestFrom(target1,8,I2C_STOP,50); // blocking Rx with timeout
+        Wire.endTransmission(I2C_NOSTOP);           // blocking Tx, no STOP
+        Wire.requestFrom(target,8,I2C_STOP,50);     // blocking Rx with 50us timeout
         hold = deltaT;
-        digitalWrite(13,LOW);           // LED off
 
-        print_i2c_status();             // print I2C final status
-        print_duration(hold);           // print duration
+        print_i2c_status();                         // print I2C final status
+        Serial.printf("Duration: %dus\n", hold);    // print duration
+        delay(1);                                   // delay to space out tests
 
-        delay(20); // delay to space out tests
+        Serial.print("---------------------------------------------------------\n");
+        Serial.print("Test4 : Blocking receive with no timeout\n");
+        Serial.print("---------------------------------------------------------\n");
+        Serial.printf("I2C READ 8 bytes from Slave 0x%0X at MemAddr %d (no timeout)\n", target, addr);
 
-        //
-        // Test4 - blocking receive no timeout
-        //
-        Serial.print("---------------------------------------------------\n");
-        Serial.print("I2C READ 8 byte from Slave 0x");
-        Serial.print(target1,HEX);
-        Serial.print(" (no timeout)\n");
-
-        Wire.beginTransmission(target1);// slave addr
-        Wire.write(READ);               // WRITE command
-        Wire.write(0);                  // memory address
-        digitalWrite(13,HIGH);          // LED on
+        Wire.beginTransmission(target);             // slave addr
+        Wire.write(READ);                           // WRITE command
+        Wire.write(addr);                           // memory address
         deltaT = 0;
-        Wire.endTransmission(I2C_STOP); // blocking Tx
-        Wire.requestFrom(target1,8,I2C_STOP); // blocking Rx no timeout
+        Wire.endTransmission(I2C_NOSTOP);           // blocking Tx, no STOP
+        Wire.requestFrom(target,8,I2C_STOP);        // blocking Rx with no timeout
         hold = deltaT;
-        digitalWrite(13,LOW);           // LED off
 
-        print_i2c_status();             // print I2C final status
-        print_duration(hold);           // print duration
+        print_i2c_status();                         // print I2C final status
+        Serial.printf("Duration: %dus\n", hold);    // print duration
+        delay(1);                                   // delay to space out tests
 
-        delay(20); // delay to space out tests
+        Serial.print("---------------------------------------------------------\n");
+        Serial.print("Test5 : Non-blocking transmit with 50us finish() timeout\n");
+        Serial.print("---------------------------------------------------------\n");
+        Serial.printf("I2C WRITE 8 bytes to Slave 0x%0X at MemAddr %d (50us finish() timeout)\n", target, addr);
 
-        //
-        // Test5 - non-blocking transmit with finish timeout
-        //
-        Serial.print("---------------------------------------------------\n");
-        Serial.print("I2C WRITE 8 byte to Slave 0x");
-        Serial.print(target1,HEX);
-        Serial.print(" (non-blocking with 50us finish() timeout)\n");
-
-        Wire.beginTransmission(target1);// slave addr
-        Wire.write(WRITE);              // WRITE command
-        Wire.write(0);                  // memory address
-        for(uint8_t i=0; i<8; i++)
-            Wire.write(i);              // fill data buffer
-        digitalWrite(13,HIGH);          // LED on
+        Wire.beginTransmission(target);             // slave addr
+        Wire.write(WRITE);                          // WRITE command
+        Wire.write(addr);                           // memory address
+        for(len = 0; len < 8; len++)                // write 8 byte block
+            Wire.write(databuf[len]);
         deltaT = 0;
-        Wire.sendTransmission(I2C_STOP); // non-blocking Tx
+        Wire.sendTransmission(I2C_STOP);            // non-blocking Tx
         //
         // I2C working in background, so do other stuff here
         //
-        Wire.finish(50);                // finish with timeout
+        Wire.finish(50);                            // finish with timeout
         hold = deltaT;
-        digitalWrite(13,LOW);           // LED off
 
-        print_i2c_status();             // print I2C final status
-        print_duration(hold);           // print duration
+        print_i2c_status();                         // print I2C final status
+        Serial.printf("Duration: %dus\n", hold);    // print duration
+        delay(1);                                   // delay to space out tests
 
-        delay(20); // delay to space out tests
-
-        //
-        // Test6 - non-blocking transmit with finish no timeout
-        //
-        Serial.print("---------------------------------------------------\n");
-        Serial.print("I2C WRITE 8 byte to Slave 0x");
-        Serial.print(target1,HEX);
-        Serial.print(" (non-blocking with finish() no timeout)\n");
-
-        Wire.beginTransmission(target1);// slave addr
-        Wire.write(WRITE);              // WRITE command
-        Wire.write(0);                  // memory address
-        for(uint8_t i=0; i<8; i++)
-            Wire.write(i);              // fill data buffer
-        digitalWrite(13,HIGH);          // LED on
-        deltaT = 0;
-        Wire.sendTransmission(I2C_STOP); // non-blocking Tx
-        //
-        // I2C working in background, so do other stuff here
-        //
-        Wire.finish();                  // finish with no timeout
-        hold = deltaT;
-        digitalWrite(13,LOW);           // LED off
-
-        print_i2c_status();             // print I2C final status
-        print_duration(hold);           // print duration
-
-        delay(1000); // delay to space out tests
+        Serial.print("Done\n");
+        digitalWrite(LED_BUILTIN,LOW);              // LED on
+        delay(1000);                                // delay to space out tests
     }
 }
 
@@ -233,24 +194,14 @@ void loop()
 //
 void print_i2c_status(void)
 {
-    I2C_DEBUG_WAIT; // wait for Serial to clear debug msgs (only needed if using debug)
     switch(Wire.status())
     {
     case I2C_WAITING:  Serial.print("I2C waiting, no errors\n"); break;
     case I2C_ADDR_NAK: Serial.print("Slave addr not acknowledged\n"); break;
     case I2C_DATA_NAK: Serial.print("Slave data not acknowledged\n"); break;
     case I2C_ARB_LOST: Serial.print("Bus Error: Arbitration Lost\n"); break;
-    case I2C_TIMEOUT:  Serial.print("I2C Timeout\n"); break;
+    case I2C_TIMEOUT:  Serial.print("I2C timeout\n"); break;
+    case I2C_BUF_OVF:  Serial.print("I2C buffer overflow\n"); break;
     default:           Serial.print("I2C busy\n"); break;
     }
-}
-
-//
-// print duration
-//
-void print_duration(uint32_t time)
-{
-    Serial.print("Duration: ");
-    Serial.print(time);
-    Serial.print("us\n");
 }

@@ -1,13 +1,18 @@
 // -------------------------------------------------------------------------------------------
-// Teensy3.0/3.1/LC I2C Slave
-// 08Mar13 Brian (nox771 at gmail.com)
+// Teensy3.0/3.1/LC I2C Interrupt Test
+// 15May13 Brian (nox771 at gmail.com)
 // -------------------------------------------------------------------------------------------
 //
-// This creates an I2C slave device with simple read/write commands and a small
-// addressable memory.
+// This creates an I2C master device which will issue I2C commands from inside a periodic
+// interrupt (eg. reading a sensor at regular time intervals).  For this test the Slave device
+// will be assumed to be that given in the i2c_t3/slave sketch.
+//
+// The test will start when the Serial monitor opens.
 //
 // This example code is in the public domain.
 //
+// -------------------------------------------------------------------------------------------
+// Slave protocol is as follows:
 // -------------------------------------------------------------------------------------------
 // WRITE - The I2C Master can write to the device by transmitting the WRITE command,
 //         a memory address to store to, and a sequence of data to store.
@@ -56,92 +61,52 @@
 #define SETRATE  0x30
 
 // Function prototypes
-void receiveEvent(size_t len);
-void requestEvent(void);
+void readSlave(void);
 
-// Memory
-#define MEM_LEN 256
-uint8_t mem[MEM_LEN];
-uint8_t cmd;
-size_t addr;
-i2c_rate rate;
+IntervalTimer slaveTimer;
+uint8_t target=0x44;
+size_t addr=0, len;
 
-//
-// Setup
-//
 void setup()
 {
-    pinMode(LED_BUILTIN,OUTPUT); // LED
+    pinMode(LED_BUILTIN,OUTPUT);        // LED
 
-    // Setup for Slave mode, address 0x44, pins 18/19, external pullups, 400kHz
-    Wire.begin(I2C_SLAVE, 0x44, I2C_PINS_18_19, I2C_PULLUP_EXT, I2C_RATE_400);
-
-    // init vars
-    cmd = 0;
-    addr = 0;
-    memset(mem, 0, sizeof(mem));
-    rate = I2C_RATE_400;
-
-    // register events
-    Wire.onReceive(receiveEvent);
-    Wire.onRequest(requestEvent);
+    // Setup for Master mode, pins 18/19, external pullups, 400kHz
+    Wire.begin(I2C_MASTER, 0x00, I2C_PINS_18_19, I2C_PULLUP_EXT, I2C_RATE_400);
 
     Serial.begin(115200);
+    delay(5);                           // Slave powerup wait
+
+    // Setup Slave
+    Wire.beginTransmission(target);     // slave addr
+    Wire.write(WRITE);                  // WRITE command
+    Wire.write(addr);                   // memory address
+    for(len = 0; len < 8; len++)        // write 8 byte block
+        Wire.write(len);
+    Wire.endTransmission();             // blocking Tx
+
+    while(!Serial);                     // wait to start
+
+    // Start reading Slave device
+    slaveTimer.begin(readSlave,1000000); // 1s timer
 }
 
 void loop()
 {
-    digitalWrite(LED_BUILTIN,HIGH); // double pulse LED while waiting for I2C requests
-    delay(10);                      // if the LED stops the slave is probably stuck in an ISR
-    digitalWrite(LED_BUILTIN,LOW);
-    delay(100);
-    digitalWrite(LED_BUILTIN,HIGH);
-    delay(10);
-    digitalWrite(LED_BUILTIN,LOW);
-    delay(880);
+    delay(1);
 }
 
-//
-// handle Rx Event (incoming I2C request/data)
-//
-void receiveEvent(size_t len)
+void readSlave(void)
 {
-    if(Wire.available())
-    {
-        // grab command
-        cmd = Wire.readByte();
-        switch(cmd)
-        {
-        case WRITE:
-            addr = Wire.readByte();                // grab addr
-            while(Wire.available())
-                if(addr < MEM_LEN)                 // drop data beyond mem boundary
-                    mem[addr++] = Wire.readByte(); // copy data to mem
-                else
-                    Wire.readByte();               // drop data if mem full
-            break;
+    digitalWrite(LED_BUILTIN,HIGH);         // pulse LED when reading
 
-        case READ:
-            addr = Wire.readByte();                // grab addr
-            break;
+    Wire.beginTransmission(target);         // slave addr
+    Wire.write(READ);                       // WRITE command
+    Wire.write(addr);                       // memory address
+    Wire.endTransmission(I2C_NOSTOP);       // blocking Tx, no STOP
+    Wire.requestFrom(target,1,I2C_STOP);    // READ 1 byte
 
-        case SETRATE:
-            rate = (i2c_rate)Wire.readByte();      // grab rate
-            Wire.setRate(rate);                    // set rate
-            break;
-        }
-    }
-}
-
-//
-// handle Tx Event (outgoing I2C data)
-//
-void requestEvent(void)
-{
-    switch(cmd)
-    {
-    case READ:
-        Wire.write(&mem[addr], MEM_LEN-addr); // fill Tx buffer (from addr location to end of mem)
-        break;
-    }
+    Serial.printf("Data read from Slave device: %d\n", Wire.readByte());
+    addr = (addr < 7) ? addr+1 : 0;         // loop reading memory address
+    digitalWrite(LED_BUILTIN,LOW);
 }

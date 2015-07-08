@@ -1,5 +1,5 @@
 // -------------------------------------------------------------------------------------------
-// Teensy3.0/3.1 I2C Master
+// Teensy3.0/3.1/LC I2C Master
 // 08Mar13 Brian (nox771 at gmail.com)
 // -------------------------------------------------------------------------------------------
 //
@@ -42,26 +42,43 @@
 //       DATAx     = data byte read by Master, multiple bytes are read from increasing address
 //       STOP      = I2C STOP sequence
 // -------------------------------------------------------------------------------------------
+// SETRATE - The I2C Master can adjust the Slave configured I2C rate with this command
+//           The command sequence is:
+//
+// START|I2CADDR+W|SETRATE|RATE|STOP
+//
+// where START     = I2C START sequence
+//       I2CADDR+W = I2C Slave address + I2C write flag
+//       SETRATE   = SETRATE command
+//       RATE      = I2C RATE to use (must be from i2c_rate enum list, eg. I2C_RATE_xxxx)
+// -------------------------------------------------------------------------------------------
 
 #include <i2c_t3.h>
-#ifdef I2C_DEBUG
-    #include <rbuf.h> // linker fix
-#endif
 
 // Command definitions
-#define WRITE 0x10
-#define READ  0x20
+#define WRITE    0x10
+#define READ     0x20
+#define SETRATE  0x30
 
 // Function prototypes
+void print_i2c_setup(void);
 void print_i2c_status(void);
+void print_rate(i2c_rate rate);
+void test_rate(uint8_t target, i2c_rate rate);
+
+// Memory
+#define MEM_LEN 256
+uint8_t databuf[MEM_LEN];
 
 void setup()
 {
-    pinMode(13,OUTPUT);       // LED
-    pinMode(12,INPUT_PULLUP); // Control for Test1
-    pinMode(11,INPUT_PULLUP); // Control for Test2
-    pinMode(10,INPUT_PULLUP); // Control for Test3
-    pinMode(9,INPUT_PULLUP);  // Control for Test4
+    pinMode(LED_BUILTIN,OUTPUT);    // LED
+    digitalWrite(LED_BUILTIN,LOW);  // LED off
+    pinMode(12,INPUT_PULLUP);       // Control for Test1
+    pinMode(11,INPUT_PULLUP);       // Control for Test2
+    pinMode(10,INPUT_PULLUP);       // Control for Test3
+    pinMode(9,INPUT_PULLUP);        // Control for Test4
+    pinMode(8,INPUT_PULLUP);        // Control for Test5
 
     Serial.begin(115200);
 
@@ -72,8 +89,9 @@ void setup()
 void loop()
 {
     size_t addr, len;
-    uint8_t data;
+    uint8_t databuf[256];
     uint8_t target = 0x44; // slave addr
+    uint32_t count;
 
     //
     // A sequence of different read/write techniques.
@@ -89,285 +107,421 @@ void loop()
     // used in the different tests.
     //
 
-    //
-    // Test1 - single-byte reads/writes to slave
-    //
     if(digitalRead(12) == LOW)
     {
-        Serial.print("---------------------------------------------------\n");
-        for(addr = 0; addr < 256; addr += 20)   // sweep addr in 20byte blocks
-        {
-            Serial.print("I2C WRITE 1 byte at MemAddr ");
-            Serial.print(addr);
-            Serial.print("\n");
-            Serial.print("Writing: ");
+        digitalWrite(LED_BUILTIN,HIGH);         // LED on
+        Serial.print("---------------------------------------------------------\n");
+        Serial.print("Test1 : Using blocking commands:\n");
+        Serial.print("        1) WRITE memory in 32 byte blocks\n");
+        Serial.print("        2) READ back memory in 32 byte blocks\n");
+        Serial.print("---------------------------------------------------------\n");
 
-            Wire.beginTransmission(target); // slave addr
-            Wire.write(WRITE);              // WRITE command
-            Wire.write(addr);               // memory address
-            data = addr+5;                  // set data (equal to mem addr+5)
-            Wire.write(data);
-            Serial.print(data);
-            Serial.print(" ");
-            digitalWrite(13,HIGH);          // LED on
-            Wire.endTransmission();         // blocking I2C Tx (when not specified I2C_STOP is implicit)
-            digitalWrite(13,LOW);           // LED off
-
-            I2C_DEBUG_WAIT;                 // wait for Serial to clear debug msgs (only needed if using debug)
-            Serial.print("\n");
-            print_i2c_status();             // print I2C final status
-        }
-
-        Serial.print("---------------------------------------------------\n");
-        for(addr = 0; addr < 256; addr += 20)   // sweep addr in 20byte blocks
-        {
-            Wire.beginTransmission(target);     // slave addr
-            Wire.write(READ);                   // READ command
-            Wire.write(addr);                   // memory address
-            digitalWrite(13,HIGH);              // LED on
-            Wire.endTransmission(I2C_NOSTOP);   // blocking write   (NOSTOP triggers RepSTART
-            Wire.requestFrom(target,1,I2C_STOP);// blocking read    on next I2C command)
-            digitalWrite(13,LOW);               // LED off
-
-            I2C_DEBUG_WAIT;                     // wait for Serial to clear debug msgs (only needed if using debug)
-            Serial.print("I2C READ ");
-            Serial.print((uint16_t)Wire.available());
-            Serial.print(" bytes from MemAddr ");
-            Serial.print(addr);
-            Serial.print("\n");
-            Serial.print("Received: ");         // print received bytes
-            while(Wire.available())
-            {
-                Serial.print(Wire.readByte());
-                Serial.print(" ");
-            }
-            Serial.print("\n");
-            print_i2c_status();                 // print I2C final status
-        }
-
-        delay(500); // delay to space out tests
-    }
-
-    //
-    // Test2 - 32byte block reads/writes to slave, sweep across memory address range
-    //
-    if(digitalRead(11) == LOW)
-    {
-        Serial.print("---------------------------------------------------\n");
+        // Writing to Slave --------------------------------------------------------
         for(addr = 0; addr < 256; addr += 32)   // sweep addr in 32byte blocks
         {
-            Serial.print("I2C WRITE 32 bytes at MemAddr ");
-            Serial.print(addr);
-            Serial.print("\n");
+            for(len = 0; len < 32; len++)       // prepare data to send
+                databuf[len] = (addr+len)^0xFF; // set data (equal to bit inverse of memory address)
+
+            Serial.printf("I2C WRITE 32 bytes to Slave 0x%0X at MemAddr %d\n", target, addr);
             Serial.print("Writing: ");
+            for(len = 0; len < 32; len++) { Serial.printf("%d ",databuf[len]); }
+            Serial.print("\n");
 
             Wire.beginTransmission(target);     // slave addr
             Wire.write(WRITE);                  // WRITE command
             Wire.write(addr);                   // memory address
-            for(len = 0; len < 32; len++)       // write 32byte block
-            {
-                data = (addr+len)^0xFF;         // set data (equal to bit inverse mem addr)
-                Wire.write(data);
-                Serial.print(data);
-                Serial.print(" ");
-            }
-            digitalWrite(13,HIGH);              // LED on
-            Wire.endTransmission(I2C_STOP);     // blocking I2C Tx
-            digitalWrite(13,LOW);               // LED off
+            for(len = 0; len < 32; len++)       // write 32 byte block
+                Wire.write(databuf[len]);
+            Wire.endTransmission();             // blocking write (when not specified I2C_STOP is implicit)
 
-            I2C_DEBUG_WAIT;                     // wait for Serial to clear debug msgs (only needed if using debug)
-            Serial.print("\n");
             print_i2c_status();                 // print I2C final status
         }
 
-        Serial.print("---------------------------------------------------\n");
+        // Reading from Slave ------------------------------------------------------
         for(addr = 0; addr < 256; addr += 32)   // sweep addr in 32byte blocks
         {
             Wire.beginTransmission(target);     // slave addr
             Wire.write(READ);                   // READ command
             Wire.write(addr);                   // memory address
-            digitalWrite(13,HIGH);              // LED on
-            Wire.endTransmission(I2C_NOSTOP);   // blocking write   (NOSTOP triggers RepSTART
-            Wire.requestFrom(target,32,I2C_STOP);// blocking read   on next I2C command)
-            digitalWrite(13,LOW);               // LED off
+            Wire.endTransmission(I2C_NOSTOP);   // blocking write (NOSTOP triggers RepSTART on next I2C command)
+            Wire.requestFrom(target,32,I2C_STOP);// blocking read (request 32 bytes)
 
-            I2C_DEBUG_WAIT;                     // wait for Serial to clear debug msgs (only needed if using debug)
-            Serial.print("I2C READ ");
-            Serial.print(Wire.available());
-            Serial.print(" bytes from MemAddr ");
-            Serial.print(addr);
-            Serial.print("\n");
+            Serial.printf("I2C READ 32 bytes from Slave 0x%0X at MemAddr %d\n", target, addr);
             Serial.print("Received: ");         // print received bytes
-            while(Wire.available())
-            {
-                Serial.print(Wire.readByte());
-                Serial.print(" ");
-            }
+            while(Wire.available()) { Serial.printf("%d ", Wire.readByte()); }
             Serial.print("\n");
             print_i2c_status();                 // print I2C final status
         }
 
-        delay(500); // delay to space out tests
+        digitalWrite(LED_BUILTIN,LOW);          // LED off
+        delay(500);                             // delay to space out tests
     }
 
-    //
-    // Test3 - max memory test, reads/writes entire slave memory at once
-    //
+
+    if(digitalRead(11) == LOW)
+    {
+        digitalWrite(LED_BUILTIN,HIGH);         // LED on
+        Serial.print("---------------------------------------------------------\n");
+        Serial.print("Test2 : Using blocking commands:\n");
+        Serial.print("        1) WRITE entire memory in a single 256 byte block\n");
+        Serial.print("        2) READ back entire memory in a single 256 byte block\n");
+        Serial.print("---------------------------------------------------------\n");
+
+        // Writing to Slave --------------------------------------------------------
+        addr = 0;
+        for(len = 0; len < 256; len++)          // prepare data to send
+            databuf[len] = (addr+len)^0xFF;     // set data (equal to bit inverse of memory address)
+
+        Serial.printf("I2C WRITE 256 bytes to Slave 0x%0X at MemAddr %d\n", target, addr);
+        Serial.print("Writing: ");
+        for(len = 0; len < 256; len++) { Serial.printf("%d ",databuf[len]); }
+        Serial.print("\n");
+
+        Wire.beginTransmission(target);         // slave addr
+        Wire.write(WRITE);                      // WRITE command
+        Wire.write(addr);                       // memory address
+        for(len = 0; len < 256; len++)          // write 256 byte block
+            Wire.write(databuf[len]);
+        Wire.endTransmission(I2C_STOP);         // blocking write (using explicit I2C_STOP)
+
+        print_i2c_status();                     // print I2C final status
+
+        // Reading from Slave ------------------------------------------------------
+        Wire.beginTransmission(target);         // slave addr
+        Wire.write(READ);                       // READ command
+        Wire.write(addr);                       // memory address
+        Wire.endTransmission(I2C_NOSTOP);       // blocking write (NOSTOP triggers RepSTART on next I2C command)
+        Wire.requestFrom(target,256,I2C_STOP);  // blocking read (request 256 bytes)
+
+        Serial.printf("I2C READ %d bytes from Slave 0x%0X at MemAddr %d\n", Wire.available(), target, addr);
+        Serial.print("Received: ");             // print received bytes
+        while(Wire.available()) { Serial.printf("%d ", Wire.readByte()); }
+        Serial.print("\n");
+        print_i2c_status();                     // print I2C final status
+
+        digitalWrite(LED_BUILTIN,LOW);          // LED off
+        delay(500);                             // delay to space out tests
+    }
+
+
     if(digitalRead(10) == LOW)
     {
-        Serial.print("---------------------------------------------------\n");
-        Serial.print("I2C WRITE 256 bytes at MemAddr 0\n");
-        Serial.print("Writing: ");
+        digitalWrite(LED_BUILTIN,HIGH);         // LED on
+        Serial.print("---------------------------------------------------------\n");
+        Serial.print("Test3 : Using ISR NON-blocking commands:\n");
+        Serial.print("        1) WRITE a 256 byte block to Slave.  While block is\n");
+        Serial.print("           transferring, perform other commands.\n");
+        Serial.print("        2) READ back the 256 byte block from Slave.  While\n");
+        Serial.print("           block is transferring, perform other commands.\n");
+        Serial.print("---------------------------------------------------------\n");
 
+        // Set operating mode to ISR
+        Wire.setOpMode(I2C_OP_MODE_ISR);
+
+        // Writing to Slave --------------------------------------------------------
         addr = 0;
-        Wire.beginTransmission(target);     // slave addr
-        Wire.write(WRITE);                  // WRITE command
-        Wire.write(addr);                   // memory address
-        for(len = 0; len < 256; len++)      // write 256byte block
-        {
-            data = len;                     // set data (equal to mem addr)
-            Wire.write(data);
-            Serial.print(data);
-            Serial.print(" ");
-        }
-        digitalWrite(13,HIGH);              // LED on
-        Wire.sendTransmission(I2C_STOP);    // non-blocking I2C Tx
-        while(!Wire.done())
-        {
-            // since write is non-blocking, could do something else in
-            // foreground here, while I2C is in background
-        }
-        digitalWrite(13,LOW);               // LED off
+        for(len = 0; len < 256; len++)           // prepare data to send
+            databuf[len] = (addr+len)^0xFF;     // set data (equal to bit inverse of memory address)
 
-        I2C_DEBUG_WAIT;                     // wait for Serial to clear debug msgs (only needed if using debug)
+        Serial.printf("I2C WRITE 256 bytes to Slave 0x%0X at MemAddr %d\n", target, addr);
+        Serial.print("Writing: ");
+        for(len = 0; len < 256; len++) { Serial.printf("%d ",databuf[len]); }
         Serial.print("\n");
-        print_i2c_status();                 // print I2C final status
 
-        Serial.print("---------------------------------------------------\n");
-        Wire.beginTransmission(target);     // slave addr
-        Wire.write(READ);                   // READ command
-        Wire.write(addr);                   // memory address
-        digitalWrite(13,HIGH);              // LED on
-        Wire.endTransmission(I2C_NOSTOP);   // blocking write        (NOSTOP triggers RepSTART
-        Wire.sendRequest(target,256,I2C_STOP);// non-blocking read   on next I2C command)
-        //
-        // since read is non-blocking, could do some short foreground task here,
-        // then use Wire.finish() to complete Rx
-        //
+        Wire.beginTransmission(target);         // slave addr
+        Wire.write(WRITE);                      // WRITE command
+        Wire.write(addr);                       // memory address
+        for(len = 0; len < 256; len++)          // write 256 byte block
+            Wire.write(databuf[len]);
+        Wire.sendTransmission();                // NON-blocking write (when not specified I2C_STOP is implicit)
+
+        Serial.print("...write sent, counting while waiting for Wire.done()...\n");
+        count = 1;
+        while(!Wire.done()) count++; // Since write is non-blocking, do some counting while waiting
+        Serial.printf("Counted to: %d\n", count++);
+        print_i2c_status();                     // print I2C final status
+
+        // Reading from Slave ------------------------------------------------------
+        Wire.beginTransmission(target);         // slave addr
+        Wire.write(READ);                       // READ command
+        Wire.write(addr);                       // memory address
+        Wire.endTransmission(I2C_NOSTOP);       // blocking write (NOSTOP triggers RepSTART on next I2C command)
+        Wire.sendRequest(target,256,I2C_STOP);  // NON-blocking read (request 256 bytes)
+
+        // Since request is non-blocking, do some other things.
+        Serial.print("...request sent, doing one thing then waiting for Wire.finish()...\n");
+
+        // After doing something, use finish() to wait until I2C done
         Wire.finish();
-        digitalWrite(13,LOW);               // LED off
 
-        I2C_DEBUG_WAIT;                     // wait for Serial to clear debug msgs (only needed if using debug)
-        Serial.print("I2C READ ");
-        Serial.print(Wire.available());
-        Serial.print(" bytes from MemAddr ");
-        Serial.print(addr);
+        Serial.printf("I2C READ %d bytes from Slave 0x%0X at MemAddr %d\n", Wire.available(), target, addr);
+        Serial.print("Received: ");             // print received bytes
+        while(Wire.available()) { Serial.printf("%d ", Wire.readByte()); }
         Serial.print("\n");
-        Serial.print("Received: ");         // print received bytes
-        while(Wire.available())
-        {
-            Serial.print(Wire.readByte());
-            Serial.print(" ");
-        }
-        Serial.print("\n");
-        print_i2c_status();                 // print I2C final status
+        print_i2c_status();                     // print I2C final status
 
-        delay(500); // delay to space out tests
+        digitalWrite(LED_BUILTIN,LOW);          // LED off
+        delay(500);                             // delay to space out tests
     }
 
-    //
-    // Test4 - START/STOP/RepSTART tests - chains of different R/W tests
-    //
+
     if(digitalRead(9) == LOW)
     {
-        Serial.print("---------------------------------------------------\n");
-        Serial.print("I2C WRITE 1 byte at MemAddr 0\n");
-        Wire.beginTransmission(target);     // slave addr
-        Wire.write(WRITE);                  // WRITE command
-        Wire.write(0);                      // memory address
-        Wire.write(1);                      // data
-        digitalWrite(13,HIGH);              // LED on
-        Wire.endTransmission(I2C_NOSTOP);   // blocking I2C Tx (NOSTOP)
-        digitalWrite(13,LOW);               // LED off
-        print_i2c_status();                 // print I2C final status
+        digitalWrite(LED_BUILTIN,HIGH);         // LED on
+        Serial.print("---------------------------------------------------------\n");
+        Serial.print("Test4 : Using DMA NON-blocking commands:\n");
+        Serial.print("        1) WRITE a 256 byte block to Slave.  While block is\n");
+        Serial.print("           transferring, perform other commands.\n");
+        Serial.print("        2) READ back the 256 byte block from Slave.  While\n");
+        Serial.print("           block is transferring, perform other commands.\n");
+        Serial.print("---------------------------------------------------------\n");
 
-        Serial.print("RepSTART I2C WRITE 1 bytes at MemAddr 0\n");
-        Wire.beginTransmission(target);     // slave addr
-        Wire.write(WRITE);                  // WRITE command
-        Wire.write(0);                      // memory address
-        Wire.write(1);                      // data
-        digitalWrite(13,HIGH);              // LED on
-        Wire.endTransmission();             // blocking I2C Tx (implicit STOP)
-        digitalWrite(13,LOW);               // LED off
-        print_i2c_status();                 // print I2C final status
+        // Set operating mode to DMA
+        Serial.print("Trying to set DMA mode : ");
+        Wire.setOpMode(I2C_OP_MODE_DMA);
+        if(Wire.i2c->opMode == I2C_OP_MODE_DMA)
+            Serial.printf("OK (Channel %d)\n",Wire.i2c->DMA->channel);
+        else
+            Serial.print("Failed, using ISR\n");
 
-        Serial.print("I2C WRITE 1 byte at MemAddr 0 (to bad target addr)\n");
-        Wire.beginTransmission(target+1);   // slave addr (non-existant target)
-        Wire.write(WRITE);                  // WRITE command
-        Wire.write(0);                      // memory address
-        Wire.write(1);                      // data
-        digitalWrite(13,HIGH);              // LED on
-        Wire.endTransmission();             // blocking I2C Tx (implicit STOP)
-        digitalWrite(13,LOW);               // LED off
-        print_i2c_status();                 // print I2C final status
+        // Writing to Slave --------------------------------------------------------
+        addr = 0;
+        for(len = 0; len < 256; len++)           // prepare data to send
+            databuf[len] = (addr+len)^0xFF;     // set data (equal to bit inverse of memory address)
 
-        Serial.print("---------------------------------------------------\n");
-        Serial.print("I2C READ 1 byte from MemAddr 0\n");
-        Wire.beginTransmission(target);     // slave addr
-        Wire.write(READ);                   // READ command
-        Wire.write(0);                      // memory address
-        digitalWrite(13,HIGH);              // LED on
-        Wire.endTransmission(I2C_NOSTOP);   // blocking write   (NOSTOP - next cmd is RepSTART)
-        Wire.requestFrom(target,1,I2C_NOSTOP);// blocking read (NOSTOP - next cmd is RepSTART)
-        digitalWrite(13,LOW);               // LED off
-        print_i2c_status();                 // print I2C final status
+        Serial.printf("I2C WRITE 256 bytes to Slave 0x%0X at MemAddr %d\n", target, addr);
+        Serial.print("Writing: ");
+        for(len = 0; len < 256; len++) { Serial.printf("%d ",databuf[len]); }
+        Serial.print("\n");
 
-        Serial.print("RepSTART I2C READ 1 byte from MemAddr 0\n");
-        Wire.beginTransmission(target);     // slave addr
-        Wire.write(READ);                   // READ command
-        Wire.write(0);                      // memory address
-        digitalWrite(13,HIGH);              // LED on
-        Wire.endTransmission(I2C_NOSTOP);   // blocking write   (NOSTOP - next cmd is RepSTART)
-        Wire.requestFrom(target,1,I2C_STOP);// blocking read
-        digitalWrite(13,LOW);               // LED off
-        print_i2c_status();                 // print I2C final status
+        Wire.beginTransmission(target);         // slave addr
+        Wire.write(WRITE);                      // WRITE command
+        Wire.write(addr);                       // memory address
+        for(len = 0; len < 256; len++)          // write 256 byte block
+            Wire.write(databuf[len]);
+        Wire.sendTransmission();                // NON-blocking write (when not specified I2C_STOP is implicit)
 
-        Serial.print("I2C READ 1 byte from MemAddr 0 (using STOP/START between Tx/Rx parts)\n");
-        Wire.beginTransmission(target);     // slave addr
-        Wire.write(READ);                   // READ command
-        Wire.write(0);                      // memory address
-        digitalWrite(13,HIGH);              // LED on
-        Wire.endTransmission(I2C_STOP);     // blocking write (use STOP/START between Tx/Rx)
-        Wire.requestFrom(target,1,I2C_STOP);// blocking read
-        digitalWrite(13,LOW);               // LED off
-        print_i2c_status();                 // print I2C final status
+        Serial.print("...write sent, counting while waiting for Wire.done()...\n");
+        count = 1;
+        while(!Wire.done()) count++; // Since write is non-blocking, do some counting while waiting
+        Serial.printf("Counted to: %d\n", count++);
+        print_i2c_status();                     // print I2C final status
 
-        Serial.print("I2C READ 1 byte from MemAddr 0 (to bad target addr)\n");
-        Wire.beginTransmission(target+1);   // slave addr (non-existant target)
-        Wire.write(READ);                   // READ command
-        Wire.write(0);                      // memory address
-        digitalWrite(13,HIGH);              // LED on
-        Wire.endTransmission(I2C_NOSTOP);   // blocking write   (should fail with Addr NAK)
-        Wire.requestFrom(target+1,1,I2C_STOP);// blocking read (should fail with Addr NAK)
-        digitalWrite(13,LOW);               // LED off
-        print_i2c_status();                 // print I2C final status
+        // Reading from Slave ------------------------------------------------------
+        Wire.beginTransmission(target);         // slave addr
+        Wire.write(READ);                       // READ command
+        Wire.write(addr);                       // memory address
+        Wire.endTransmission(I2C_NOSTOP);       // blocking write (NOSTOP triggers RepSTART on next I2C command)
+        Wire.sendRequest(target,256,I2C_STOP);  // NON-blocking read (request 256 bytes)
 
-        delay(500); // delay to space out tests
+        // Since request is non-blocking, do some other things.
+        Serial.print("...request sent, doing one thing then waiting for Wire.finish()...\n");
+
+        // After doing something, use finish() to wait until I2C done
+        Wire.finish();
+
+        Serial.printf("I2C READ %d bytes from Slave 0x%0X at MemAddr %d\n", Wire.available(), target, addr);
+        Serial.print("Received: ");             // print received bytes
+        while(Wire.available()) { Serial.printf("%d ", Wire.readByte()); }
+        Serial.print("\n");
+        print_i2c_status();                     // print I2C final status
+
+        digitalWrite(LED_BUILTIN,LOW);          // LED off
+        delay(500);                             // delay to space out tests
+    }
+
+
+    if(digitalRead(8) == LOW)
+    {
+        digitalWrite(LED_BUILTIN,HIGH);         // LED on
+        Serial.print("---------------------------------------------------------\n");
+        Serial.print("Test5 : Rate adjustment tests.  This sweeps the I2C rates\n");
+        Serial.print("        on both Master and Slave and times the duration \n");
+        Serial.print("        of a 256 byte transfer at each rate.\n");
+        Serial.print("---------------------------------------------------------\n");
+
+        for(uint8_t opMode = I2C_OP_MODE_IMM; opMode <= I2C_OP_MODE_DMA; opMode++)
+        {
+            Wire.setOpMode((i2c_op_mode)opMode); // set op mode
+
+            test_rate(target, I2C_RATE_100);
+            test_rate(target, I2C_RATE_200);
+            test_rate(target, I2C_RATE_300);
+            test_rate(target, I2C_RATE_400);
+            test_rate(target, I2C_RATE_600);
+            test_rate(target, I2C_RATE_800);
+            test_rate(target, I2C_RATE_1000);
+            test_rate(target, I2C_RATE_1200);
+            #if defined(__MK20DX256__) || defined(__MK20DX128__)
+            test_rate(target, I2C_RATE_1500);
+            test_rate(target, I2C_RATE_1800);
+            test_rate(target, I2C_RATE_2000);
+            test_rate(target, I2C_RATE_2400);
+            test_rate(target, I2C_RATE_2800);
+            test_rate(target, I2C_RATE_3000);
+            #endif
+            // Restore normal settings
+
+            // Change Slave rate
+            Wire.beginTransmission(target);         // slave addr
+            Wire.write(SETRATE);                    // SETRATE command
+            Wire.write((uint8_t)I2C_RATE_400);      // rate
+            Wire.endTransmission();                 // blocking write
+
+            // Change Master rate
+            Wire.setRate(F_BUS, I2C_RATE_400);
+        }
+        Wire.setOpMode(I2C_OP_MODE_ISR);        // restore default ISR mode
+
+        print_i2c_status();                     // print I2C final status
+
+        // Restore normal settings
+
+        // Change Slave rate
+        Wire.beginTransmission(target);         // slave addr
+        Wire.write(SETRATE);                    // SETRATE command
+        Wire.write((uint8_t)I2C_RATE_400);      // rate
+        Wire.endTransmission();                 // blocking write
+
+        // Change Master rate
+        Wire.setRate(F_BUS, I2C_RATE_400);
+
+        digitalWrite(LED_BUILTIN,LOW);          // LED off
+        delay(500);                             // delay to space out tests
     }
 }
+
+
+//
+// print current setup
+//
+void print_i2c_setup()
+{
+    Serial.print("Mode:");
+    switch(Wire.i2c->opMode)
+    {
+    case I2C_OP_MODE_IMM: Serial.print("IMM    "); break;
+    case I2C_OP_MODE_ISR: Serial.print("ISR    "); break;
+    case I2C_OP_MODE_DMA: Serial.printf("DMA[%d] ",Wire.i2c->DMA->channel); break;
+    }
+    Serial.print("Pins:");
+    switch(Wire.i2c->currentPins)
+    {
+    case I2C_PINS_18_19: Serial.print("18/19 "); break;
+    case I2C_PINS_16_17: Serial.print("16/17 "); break;
+    case I2C_PINS_22_23: Serial.print("22/23 "); break;
+    case I2C_PINS_29_30: Serial.print("29/30 "); break;
+    case I2C_PINS_26_31: Serial.print("26/31 "); break;
+    }
+}
+
 
 //
 // print I2C status
 //
 void print_i2c_status(void)
 {
-    I2C_DEBUG_WAIT; // wait for Serial to clear debug msgs (only needed if using debug)
     switch(Wire.status())
     {
     case I2C_WAITING:  Serial.print("I2C waiting, no errors\n"); break;
     case I2C_ADDR_NAK: Serial.print("Slave addr not acknowledged\n"); break;
     case I2C_DATA_NAK: Serial.print("Slave data not acknowledged\n"); break;
     case I2C_ARB_LOST: Serial.print("Bus Error: Arbitration Lost\n"); break;
+    case I2C_TIMEOUT:  Serial.print("I2C timeout\n"); break;
+    case I2C_BUF_OVF:  Serial.print("I2C buffer overflow\n"); break;
     default:           Serial.print("I2C busy\n"); break;
+    }
+}
+
+
+//
+// print I2C rate
+//
+void print_rate(i2c_rate rate)
+{
+    switch(rate)
+    {
+    case I2C_RATE_100: Serial.print("I2C_RATE_100"); break;
+    case I2C_RATE_200: Serial.print("I2C_RATE_200"); break;
+    case I2C_RATE_300: Serial.print("I2C_RATE_300"); break;
+    case I2C_RATE_400: Serial.print("I2C_RATE_400"); break;
+    case I2C_RATE_600: Serial.print("I2C_RATE_600"); break;
+    case I2C_RATE_800: Serial.print("I2C_RATE_800"); break;
+    case I2C_RATE_1000: Serial.print("I2C_RATE_1000"); break;
+    case I2C_RATE_1200: Serial.print("I2C_RATE_1200"); break;
+    case I2C_RATE_1500: Serial.print("I2C_RATE_1500"); break;
+    case I2C_RATE_1800: Serial.print("I2C_RATE_1800"); break;
+    case I2C_RATE_2000: Serial.print("I2C_RATE_2000"); break;
+    case I2C_RATE_2400: Serial.print("I2C_RATE_2400"); break;
+    case I2C_RATE_2800: Serial.print("I2C_RATE_2800"); break;
+    case I2C_RATE_3000: Serial.print("I2C_RATE_3000"); break;
+    }
+}
+
+
+//
+// test rate
+//
+void test_rate(uint8_t target, i2c_rate rate)
+{
+    uint8_t fail;
+    size_t len;
+
+    for(len = 0; len < 256; len++)  // prepare data to send
+        databuf[len] = len;         // set data (equal to addr)
+
+    // Change Slave rate
+    Wire.beginTransmission(target); // slave addr
+    Wire.write(SETRATE);            // SETRATE command
+    Wire.write((uint8_t)rate);      // rate
+    Wire.endTransmission();         // blocking write
+
+    // Change Master rate
+    Wire.setRate(rate);
+
+    // Setup write buffer
+    Wire.beginTransmission(target); // slave addr
+    Wire.write(WRITE);              // WRITE command
+    Wire.write(0);                  // memory address
+    for(len = 0; len < 256; len++)  // write block
+        Wire.write(databuf[len]);
+
+    // Write to Slave
+    elapsedMicros deltaT;
+    Wire.endTransmission();         // blocking write
+    uint32_t deltatime = deltaT;
+    fail = Wire.getError();
+
+    if(!fail)
+    {
+        Wire.beginTransmission(target);     // slave addr
+        Wire.write(READ);                   // READ command
+        Wire.write(0);                      // memory address
+        Wire.endTransmission(I2C_NOSTOP);   // blocking write (NOSTOP triggers RepSTART on next I2C command)
+        Wire.requestFrom(target,256,I2C_STOP);// blocking read
+        fail = Wire.getError();
+
+        if(!fail)
+        {
+            for(len = 0; len < 256; len++)  // verify block
+                if(databuf[len] != Wire.readByte()) { fail=1; break; }
+        }
+    }
+    print_i2c_setup();
+    if(!fail)
+    {
+        // Print result
+        Serial.print("256 byte transfer at ");
+        print_rate(rate);
+        Serial.print(" (Actual Rate:");
+        print_rate(Wire.i2c->currentRate);
+        Serial.print(")");
+        Serial.printf(" : %d us : ",deltatime);
+        print_i2c_status();
+    }
+    else
+    {
+        Serial.printf("Transfer fail : %d us : ",deltatime);
+        print_i2c_status();
     }
 }

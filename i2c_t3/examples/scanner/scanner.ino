@@ -1,5 +1,5 @@
 // -------------------------------------------------------------------------------------------
-// Teensy3.0/3.1 I2C Scanner
+// Teensy3.0/3.1/LC I2C Scanner
 // 08Mar13 Brian (nox771 at gmail.com)
 // -------------------------------------------------------------------------------------------
 //
@@ -13,18 +13,15 @@
 // -------------------------------------------------------------------------------------------
 
 #include <i2c_t3.h>
-#ifdef I2C_DEBUG
-    #include <rbuf.h> // linker fix
-#endif
 
 // Function prototypes
 void print_scan_status(uint8_t target, bool all);
 
 void setup()
 {
-    pinMode(13,OUTPUT);       // LED
-    pinMode(12,INPUT_PULLUP); // Control for Test1
-    pinMode(11,INPUT_PULLUP); // Control for Test2
+    pinMode(LED_BUILTIN,OUTPUT);    // LED
+    pinMode(12,INPUT_PULLUP);       // Control for Test1
+    pinMode(11,INPUT_PULLUP);       // Control for Test2
 
     Serial.begin(115200);
 
@@ -47,14 +44,14 @@ void loop()
         all = (digitalRead(11) == LOW);
         Serial.print("---------------------------------------------------\n");
         Serial.print("Starting scan...\n");
-        digitalWrite(13,HIGH); // LED on
+        digitalWrite(LED_BUILTIN,HIGH); // LED on
         for(target = 1; target <= 0x7F; target++) // sweep addr, skip general call
         {
             Wire.beginTransmission(target);       // slave addr
             Wire.endTransmission();               // no data, just addr
             print_scan_status(target, all);
         }
-        digitalWrite(13,LOW); // LED off
+        digitalWrite(LED_BUILTIN,LOW); // LED off
         Serial.print("---------------------------------------------------\n");
 
         delay(500); // delay to space out tests
