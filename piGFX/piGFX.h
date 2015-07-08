@@ -54,6 +54,9 @@ public:
 		myTft->setCursor((x1 + x2 - textWidth)/2, (y1 + y2 - textHeight)/2);
 		myTft->print(str);
 	}
+	void erase(){
+		myTft->fillRect(x1, y1, x2 - x1, y2 - y1, backColour);
+	}
 	void checkTouch(){
 		if (enabled){
 			touched = false;
@@ -114,6 +117,7 @@ private:
 	uint16_t width;
 	uint16_t height;
 	uint16_t colour = ILI9341_WHITE;
+	uint16_t backColour = ILI9341_BLACK;
 	uint8_t textSize = 1;
 	uint16_t textColour = ILI9341_GREEN;
 	String str;
