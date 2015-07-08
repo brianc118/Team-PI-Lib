@@ -1,9 +1,7 @@
 /*
 	SRF08 - Library for array of TSOPS
 	Created by Brian Chen 15/06/2014
-	Last Modified by Brian Chen 15/06/2014 7:32pm
 
-	Beta 0.1
 */
 
 #ifndef SRF08_h
