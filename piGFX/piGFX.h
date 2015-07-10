@@ -92,9 +92,9 @@ public:
 				}
 			}
 
-			Serial.print(touched);
-			Serial.print('\t');
-			Serial.println(lTouched);
+			// Serial.print(touched);
+			// Serial.print('\t');
+			// Serial.println(lTouched);
 
 			lTouched = touched;
 		}
