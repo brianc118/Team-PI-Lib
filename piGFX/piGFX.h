@@ -40,19 +40,29 @@ public:
 
 	}
 	void setColour(uint16_t _colour){
+		if (_colour != currentColour){
+			colourToChange = true;
+		}
+		else{
+			colourToChange = false;
+		}
 		colour = _colour;
 	}
 	void setBorderColour(uint16_t _borderColour){
 		borderColour = _borderColour;
 	}
-	void draw(){
-		uint16_t textWidth = str.length() * (textSize * 5 + 1);
-		uint16_t textHeight = textSize * 8;
-		myTft->fillRect(x1, y1, x2 - x1, y2 - y1, colour);
-		myTft->setTextSize(textSize);
-		myTft->setTextColor(textColour);
-		myTft->setCursor((x1 + x2 - textWidth)/2, (y1 + y2 - textHeight)/2);
-		myTft->print(str);
+	void draw(bool forceDraw = true){
+		if (colourToChange || forceDraw){
+			uint16_t textWidth = str.length() * (textSize * 5 + 1);
+			uint16_t textHeight = textSize * 8;
+			currentColour = colour;
+			myTft->fillRect(x1, y1, x2 - x1, y2 - y1, colour);
+			myTft->setTextSize(textSize);
+			myTft->setTextColor(textColour);
+			myTft->setCursor((x1 + x2 - textWidth)/2, (y1 + y2 - textHeight)/2);
+			myTft->print(str);
+		}
+		colourToChange = false;
 	}
 	void erase(){
 		myTft->fillRect(x1, y1, x2 - x1, y2 - y1, backColour);
@@ -117,6 +127,8 @@ private:
 	uint16_t width;
 	uint16_t height;
 	uint16_t colour = ILI9341_WHITE;
+	uint16_t currentColour = ILI9341_WHITE;
+	bool colourToChange = false;
 	uint16_t backColour = ILI9341_BLACK;
 	uint8_t textSize = 1;
 	uint16_t textColour = ILI9341_GREEN;
