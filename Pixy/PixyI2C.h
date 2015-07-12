@@ -59,7 +59,7 @@ public:
   }
   uint8_t getByte()
   {
-  	Wire.requestFrom((int)addr, 1);
+  	if (Wire.requestFrom((int)addr, 1, I2C_STOP, PIXY_I2C_TIMOUT) == 0){ return 0; }
   	return Wire.read();
   }
 
