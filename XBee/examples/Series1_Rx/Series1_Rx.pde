@@ -52,15 +52,11 @@ void flashLed(int pin, int times, int wait) {
 }
 
 void setup() {
-  pinMode(statusLed, OUTPUT);
-  pinMode(errorLed, OUTPUT);
-  pinMode(dataLed,  OUTPUT);
   
   // start serial
   Serial.begin(9600);
-  xbee.setSerial(Serial);
+  xbee.setSerial(Serial3);
   
-  flashLed(statusLed, 3, 50);
 }
 
 // continuously reads packets, looking for RX16 or RX64
@@ -85,13 +81,13 @@ void loop() {
         }
         
         // TODO check option, rssi bytes    
-        flashLed(statusLed, 1, 10);
+        Serial.println("flashLed(statusLed, 1, 10);");
         
         // set dataLed PWM to value of the first byte in the data
         analogWrite(dataLed, data);
       } else {
       	// not something we were expecting
-        flashLed(errorLed, 1, 25);    
+        Serial.println("flashLed(errorLed, 1, 25);");    
       }
     } else if (xbee.getResponse().isError()) {
       //nss.print("Error reading packet.  Error code: ");  

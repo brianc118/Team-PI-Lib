@@ -46,8 +46,6 @@ TxStatusResponse txStatus = TxStatusResponse();
 
 int pin5 = 0;
 
-int statusLed = 11;
-int errorLed = 12;
 
 void flashLed(int pin, int times, int wait) {
     
@@ -63,10 +61,8 @@ void flashLed(int pin, int times, int wait) {
 }
 
 void setup() {
-  pinMode(statusLed, OUTPUT);
-  pinMode(errorLed, OUTPUT);
   Serial.begin(9600);
-  xbee.setSerial(Serial);
+  xbee.setSerial(Serial3);
 }
 
 void loop() {
@@ -81,7 +77,7 @@ void loop() {
       xbee.send(tx);
 
       // flash TX indicator
-      flashLed(statusLed, 1, 100);
+      Serial.println("flashLed(statusLed, 1, 100);");
     }
   
     // after sending a tx request, we expect a status response
@@ -96,10 +92,11 @@ void loop() {
     	   // get the delivery status, the fifth byte
            if (txStatus.getStatus() == SUCCESS) {
             	// success.  time to celebrate
-             	flashLed(statusLed, 5, 50);
+              Serial.println("success");
+        
            } else {
             	// the remote XBee did not receive our packet. is it powered on?
-             	flashLed(errorLed, 3, 500);
+             	Serial.println("did not receive");
            }
         }      
     } else if (xbee.getResponse().isError()) {
@@ -108,7 +105,7 @@ void loop() {
       // or flash error led
     } else {
       // local XBee did not provide a timely TX Status Response.  Radio is not configured properly or connected
-      flashLed(errorLed, 2, 50);
+      Serial.println("error");
     }
     
     delay(1000);
