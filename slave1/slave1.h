@@ -28,7 +28,6 @@
 class LIGHTARRAY{
 public:
 	uint8_t lightData[16] = {0};	// Light sensor data array
-	
 	uint8_t refData[16] = {0};
 	uint8_t white[16] = {0};
 	uint8_t green[16] = {0};
@@ -36,6 +35,8 @@ public:
 	uint8_t colours[16] = {0};
 	uint8_t pColours[16] = {0};	// previous data
 	uint8_t ppColours[16] = {0};	// even earlier data
+	uint8_t coloursSummed[16] = {0};
+	uint8_t light_i = 0;
 	
 	uint8_t armFrontSum = 0;
 	uint8_t armBackSum = 0;
@@ -91,10 +92,23 @@ public:
 		for (int i = 0; i < 16; i++){
 			colours[i] = lightData[i] > refData[i] ? 1 : 0;
 		}
-		armFrontSum = colours[0]  + colours[2]  + colours[1]  + colours[3]; // include light sensor 4
-		armBackSum  = colours[9]  + colours[11] + colours[13] + colours[8];
-		armRightSum = colours[7]  + colours[6]  + colours[5]  + colours[4];
-		armLeftSum  = colours[15] + colours[14] + colours[10] + colours[12];
+		if (light_i == 10){
+			for (int i = 0; i < 16; i++){
+				coloursSummed[i] = colours[i];
+			}			
+			light_i = 0;
+		}
+		else{
+			for (int i = 0; i < 16; i++){
+				coloursSummed[i] += colours[i];
+			}			
+			light_i++;
+		}
+
+		armFrontSum = coloursSummed[0]  + coloursSummed[2]  + coloursSummed[1]  + coloursSummed[3]; // include light sensor 4
+		armBackSum  = coloursSummed[9]  + coloursSummed[11] + coloursSummed[13] + coloursSummed[8];
+		armRightSum = coloursSummed[7]  + coloursSummed[6]  + coloursSummed[5]  + coloursSummed[4];
+		armLeftSum  = coloursSummed[15] + coloursSummed[14] + coloursSummed[10] + coloursSummed[12];
 
 		memcpy(&ppColours, pColours, 16 * sizeof(colours[0]));
 		memcpy(&pColours, colours, 16 * sizeof(colours[0]));
