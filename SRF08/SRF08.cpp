@@ -52,7 +52,7 @@ bool SRF08::rangeDone(){
 	uint8_t softRev;
 	getSoft(softRev);	
 
-	if (softRev == 255){
+	if (softRev > 20){
 		return false;
 	}
 	return true;
