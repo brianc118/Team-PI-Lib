@@ -108,9 +108,11 @@ enum LINELOCATION{
 // 	EDGE_BOTTOM,
 // };
 
+
 #define SIGN(a) (a < 0 ? -1 : 1)
 
 #define DIFF180(a, b)(abs(b - a) <= 180 ? b - a : b - a - SIGN(b - a) * 360)
+
 
 #define TOBEARING180(a){ \
 	if(a > 180){		\
@@ -118,8 +120,8 @@ enum LINELOCATION{
 	}					\
 	else if(a <= -180){  \
 		a += 360;	   \
-	}					\
-}
+	}}					\
+
 
 #define TOBEARING360(a){ \
 	if(a >= 360){	   \
