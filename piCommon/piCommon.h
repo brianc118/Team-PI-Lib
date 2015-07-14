@@ -127,8 +127,32 @@ enum LINELOCATION{
 	}					\
 	else if(a < 0){	  \
 		a += 360;	   \
-	}					\
+	}}					\
+
+
+bool isBetween(float angle, float lower, float upper){
+	TOBEARING360(angle);
+	TOBEARING360(lower);
+	TOBEARING360(upper);
+	if (lower == upper){
+		return true;
+	}
+	else if (lower > upper){
+		if (angle >= lower && angle <= 360){
+			return true;
+		}
+		if (angle >= 0 && angle <= upper){
+			return true;
+		}
+	}
+	else{
+		if (angle >= lower && angle <= upper){
+			return true;
+		}
+	}
+	return false;
 }
+
 
 /* macros to shift array. Parameters are inclusive. For example:
    int array[] =                  { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
