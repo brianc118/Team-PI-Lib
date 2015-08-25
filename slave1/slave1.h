@@ -44,10 +44,25 @@ public:
 	uint8_t armRightSum = 0;
 
 	uint8_t lineLocation = 0;
-
-	void init(){
-		analogReference(EXTERNAL);
-
+	void output(){
+		pinMode(L1,		OUTPUT);
+		pinMode(L2,		OUTPUT);
+		pinMode(L3,		OUTPUT);
+		pinMode(L4,		OUTPUT);
+		pinMode(L5,		OUTPUT);
+		pinMode(L6,		OUTPUT);
+		pinMode(L7,		OUTPUT);
+		pinMode(L8,		OUTPUT);
+		pinMode(L9,		OUTPUT);
+		pinMode(L10,	OUTPUT);
+		pinMode(L11,	OUTPUT);
+		pinMode(L12,	OUTPUT);
+		pinMode(L13,	OUTPUT);
+		pinMode(L14,	OUTPUT);
+		pinMode(L15,	OUTPUT);
+		pinMode(L16,	OUTPUT);
+	}
+	void input(){
 		pinMode(L1,		INPUT);
 		pinMode(L2,		INPUT);
 		pinMode(L3,		INPUT);
@@ -64,10 +79,17 @@ public:
 		pinMode(L14,	INPUT);
 		pinMode(L15,	INPUT);
 		pinMode(L16,	INPUT);
+	}
+	void init(){
+		analogReference(EXTERNAL);
+
+		input();
 
 		loadCalibData();
 	}
 	void read(){
+		input();
+
 		analogReadResolution(8);	// 8 bits of resolution is enough for differentiating between black white and green
 		analogReadAveraging(0);	// averaging DOES NOT EFFECT PERFORMANCE. It is performed on the ADC, not on the uC
 
@@ -87,12 +109,32 @@ public:
 		lightData[13]	= analogRead(L14);
 		lightData[14]	= analogRead(L15);
 		lightData[15]	= analogRead(L16);
+
+		// output();
+
+		// digitalWriteFast(L1, HIGH);
+		// digitalWriteFast(L2, HIGH);
+		// digitalWriteFast(L3, HIGH);
+		// digitalWriteFast(L4, HIGH);
+		// digitalWriteFast(L5, HIGH);
+		// digitalWriteFast(L6, HIGH);
+		// digitalWriteFast(L7, HIGH);
+		// digitalWriteFast(L8, HIGH);
+		// digitalWriteFast(L9, HIGH);
+		// digitalWriteFast(L10, HIGH);
+		// digitalWriteFast(L11, HIGH);
+		// digitalWriteFast(L12, HIGH);
+		// digitalWriteFast(L13, HIGH);
+		// digitalWriteFast(L14, HIGH);
+		// digitalWriteFast(L15, HIGH);
+		// digitalWriteFast(L16, HIGH);
+
 	}
 	void getColours(){
 		for (int i = 0; i < 16; i++){
 			colours[i] = lightData[i] > refData[i] ? 1 : 0;
 		}
-		if (light_i == 10){
+		if (light_i == 50){
 			for (int i = 0; i < 16; i++){
 				coloursSummed[i] = colours[i];
 			}			
@@ -113,22 +155,60 @@ public:
 		memcpy(&ppColours, pColours, 16 * sizeof(colours[0]));
 		memcpy(&pColours, colours, 16 * sizeof(colours[0]));
 	}	
-	void calibWhite(){
+	void calibWhiteV(){
 		read();
-		for (int i = 0; i < 16; i++){
-			white[i] = lightData[i];
-		}
+		// for (int i = 0; i < 16; i++){
+		// 	white[i] = lightData[i];
+		// }
+		white[0] = lightData[0];
+		white[2] = lightData[2];
+		white[1] = lightData[1];
+		white[8] = lightData[8];
+		white[13] = lightData[13];
+		white[11] = lightData[11];
+		white[9] = lightData[9];
 	}
-	void calibGreen(){
+	void calibGreenV(){
 		read();
-		for (int i = 0; i < 16; i++){
-			green[i] = lightData[i];
-		}
+		// 1 3 2 9 14 12 10
+		green[0] = lightData[0];
+		green[2] = lightData[2];
+		green[1] = lightData[1];
+		green[8] = lightData[8];
+		green[13] = lightData[13];
+		green[11] = lightData[11];
+		green[9] = lightData[9];
+	}
+	void calibWhiteH(){
+		read();
+		// 8 7 6 5 4 13 11 15 16
+		white[7] = lightData[7];
+		white[6] = lightData[6];
+		white[5] = lightData[5];
+		white[4] = lightData[4];
+		white[3] = lightData[3];
+		white[12] = lightData[12];
+		white[10] = lightData[10];
+		white[14] = lightData[14];
+		white[15] = lightData[15];
+	}
+	void calibGreenH(){
+		read();
+		// 8 7 6 5 4 13 11 15 16
+		green[7] = lightData[7];
+		green[6] = lightData[6];
+		green[5] = lightData[5];
+		green[4] = lightData[4];
+		green[3] = lightData[3];
+		green[12] = lightData[12];
+		green[10] = lightData[10];
+		green[14] = lightData[14];
+		green[15] = lightData[15];
 	}
 	void endCalib(){
 		for (int i = 0; i < 16; i++){
-			if (white[i] > green[i] + 2 && (white[i] + green[i])/2 > 80){
-				refData[i] = (white[i] + green[i])/2;
+			if (white[i] > green[i] + 20){
+				refData[i] = (white[i] + green[i])/2 + 5;
 			}
 			else{
 				// data isn't good enough
@@ -186,7 +266,7 @@ public:
 	elapsedMicros lastReadG = 0, lastReadM = 0, lastCompFilter = 0;
 	uint32_t dtG, dtM;
 	float pitch, yaw, roll;
-	float abias[3] = {0, 0, 0}, gbias[3] = {0, 0, 0};
+	double abias[3] = {0, 0, 0}, gbias[3] = {0, 0, 0};
 	float ax, ay, az, gx, gy, gz, mx, my, mz; // variables to hold latest sensor data values 
 	float MagMinX = 0, MagMaxX = 0,
 		  MagMinY = 0, MagMaxY = 0,
@@ -223,7 +303,8 @@ public:
 		LSM9DS0::setAccelABW(LSM9DS0::A_ABW_50); // Choose lowest filter setting for low noise
 		LSM9DS0::setGyroODR(LSM9DS0::G_ODR_760_BW_100);  // Set gyro update rate to 190 Hz with the smallest bandwidth for low noise
 		LSM9DS0::setMagODR(LSM9DS0::M_ODR_100); // Set magnetometer to update every 80 ms
-		LSM9DS0::calLSM9DS0(gbias, abias); // not there is a 1s delay with this function
+		//calibGyroDrift();
+		EEPROM_readAnything(130, gbias[2]);
 
 		for(int i = 0; i < 10; i++){
 			read();
@@ -231,6 +312,11 @@ public:
 		}
 		yaw = atan2(mx,my) * 180/PI;
 		lMagYaw = yaw;
+	}
+
+	void calibGyro(){
+		LSM9DS0::calLSM9DS0(gbias, abias); // not there is a 1s delay with this function
+		EEPROM_writeAnything(130, gbias[2]);
 	}
 
 	void calibOffset(){
@@ -241,7 +327,7 @@ public:
 			delayMicroseconds(10);
 		}
 		offset = temp / 1000;		
-		//TOBEARING360(offset);
+		TOBEARING360(offset);
 		// store the offset for potential future use.
 		storeOffset();
 	}
@@ -256,7 +342,6 @@ public:
 	}
 
 	void read(){
-		
 		if(digitalReadFast(DRDYG) == HIGH){  // When new gyro data is ready
 			LSM9DS0::readGyro();		   // Read raw gyro data
 
@@ -330,7 +415,7 @@ public:
 		uint32_t dtLastCompFilter = lastCompFilter;
 		lastCompFilter = 0;
 
-		yaw += gz * dtLastCompFilter / 1000000;
+		yaw += gz * (dtLastCompFilter) / 1000000;
 
 		// the following fixes issues when say yaw is like -175 degrees
 		// while MagYaw is 175 degrees (comp filter should give around 180 degrees)
@@ -446,27 +531,26 @@ public:
 
 	// calibrate gyro offset (gbias). Keep robot still for 1s.
 	void calibGyroDrift(){
-		float dx = 0, dy = 0, dz = 0;
 		float temp = gScale;
 		gScale = 1;
 		yaw = 0;
 
 		gbias[0] = 0; gbias[1] = 0; gbias[2] = 0;
-		while(!Serial.available()){};
-		while(Serial.available()){Serial.read();}
 
 		elapsedMicros calibDriftTime = 0;
 		calibDriftTime = 0;
-		while (calibDriftTime < 1000000){
+		double tempBias = 0;
+		uint32_t count = 0;
+		for (uint32_t i = 0; i < 1000; i++){
 			read();
-			complementaryFilterBearing(1); // full gyro
+			tempBias += gy;
+			delayMicroseconds(1500);
 		}
-		//gbias[2] = yaw;
-		Serial.print(gbias[0]);
-		Serial.print('\t');
-		Serial.print(gbias[1]);
-		Serial.print('\t');
-		Serial.println(gbias[2]);
+		gbias[2] = tempBias / 700;
+		while(!Serial.available()){
+			Serial.println(gbias[2], 6);
+			delay(1000);
+		}
 	}
 };
 

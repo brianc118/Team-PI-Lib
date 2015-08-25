@@ -240,35 +240,39 @@ void LSM9DS0::initMag()
 // subtract the biases ourselves. This results in a more accurate measurement in general and can
 // remove errors due to imprecise or varying initial placement. Calibration of sensor data in this manner
 // is good practice.
-void LSM9DS0::calLSM9DS0(float * gbias, float * abias)
+void LSM9DS0::calLSM9DS0(double * gbias, double * abias)
 {  
   uint8_t data[6] = {0, 0, 0, 0, 0, 0};
   int16_t gyro_bias[3] = {0, 0, 0}, accel_bias[3] = {0, 0, 0};
   int samples, ii;
-  
+  byte c;
   // First get gyro bias
-  byte c = gReadByte(CTRL_REG5_G);
-  gWriteByte(CTRL_REG5_G, c | 0x40);         // Enable gyro FIFO  
-  delay(20);                                 // Wait for change to take effect
-  gWriteByte(FIFO_CTRL_REG_G, 0x20 | 0x1F);  // Enable gyro FIFO stream mode and set watermark at 32 samples
-  delay(1000);  // delay 1000 milliseconds to collect FIFO samples
-  
-  samples = (gReadByte(FIFO_SRC_REG_G) & 0x1F); // Read number of stored samples
+  int count = 10;
+  for (int i = 0; i < count; i++){
+  	c = gReadByte(CTRL_REG5_G);
+	gWriteByte(CTRL_REG5_G, c | 0x40);         // Enable gyro FIFO  
+	delay(3);                                 // Wait for change to take effect
+  	gWriteByte(FIFO_CTRL_REG_G, 0x20 | 0x1F);  // Enable gyro FIFO stream mode and set watermark at 32 samples
+	delay(5);  // delay 1000 milliseconds to collect FIFO samples
 
-  for(ii = 0; ii < samples ; ii++) {            // Read the gyro data stored in the FIFO
-    gReadBytes(OUT_X_L_G,  &data[0], 6);
-    gyro_bias[0] += (((int16_t)data[1] << 8) | data[0]);
-    gyro_bias[1] += (((int16_t)data[3] << 8) | data[2]);
-    gyro_bias[2] += (((int16_t)data[5] << 8) | data[4]);
-  }  
+	samples = (gReadByte(FIFO_SRC_REG_G) & 0x1F); // Read number of stored samples
 
-  gyro_bias[0] /= samples; // average the data
-  gyro_bias[1] /= samples; 
-  gyro_bias[2] /= samples; 
+	for(ii = 0; ii < samples ; ii++) {            // Read the gyro data stored in the FIFO
+	gReadBytes(OUT_X_L_G,  &data[0], 6);
+	gyro_bias[0] += (((int16_t)data[1] << 8) | data[0]);
+	gyro_bias[1] += (((int16_t)data[3] << 8) | data[2]);
+	gyro_bias[2] += (((int16_t)data[5] << 8) | data[4]);
+	}  
+  }
   
-  gbias[0] = (float)gyro_bias[0]*gRes;  // Properly scale the data to get deg/s
-  gbias[1] = (float)gyro_bias[1]*gRes;
-  gbias[2] = (float)gyro_bias[2]*gRes;
+
+  gyro_bias[0] /= (samples * count); // average the data
+  gyro_bias[1] /= (samples * count); 
+  gyro_bias[2] /= (samples * count); 
+  
+  gbias[0] = (double)gyro_bias[0]*gRes;  // Properly scale the data to get deg/s
+  gbias[1] = (double)gyro_bias[1]*gRes;
+  gbias[2] = (double)gyro_bias[2]*gRes;
   
   c = gReadByte(CTRL_REG5_G);
   gWriteByte(CTRL_REG5_G, c & ~0x40);  // Disable gyro FIFO  
@@ -296,9 +300,9 @@ void LSM9DS0::calLSM9DS0(float * gbias, float * abias)
   accel_bias[1] /= samples; 
   accel_bias[2] /= samples; 
   
-  abias[0] = (float)accel_bias[0]*aRes; // Properly scale data to get gs
-  abias[1] = (float)accel_bias[1]*aRes;
-  abias[2] = (float)accel_bias[2]*aRes;
+  abias[0] = (double)accel_bias[0]*aRes; // Properly scale data to get gs
+  abias[1] = (double)accel_bias[1]*aRes;
+  abias[2] = (double)accel_bias[2]*aRes;
 
   c = xmReadByte(CTRL_REG0_XM);
   xmWriteByte(CTRL_REG0_XM, c & ~0x40);    // Disable accelerometer FIFO  

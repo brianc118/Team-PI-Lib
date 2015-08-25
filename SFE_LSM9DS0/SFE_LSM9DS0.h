@@ -211,8 +211,8 @@ public:
 	int16_t ax, ay, az; // x, y, and z axis readings of the accelerometer
 	int16_t mx, my, mz; // x, y, and z axis readings of the magnetometer
         int16_t temperature;
-	float abias[3];
-        float gbias[3];
+	double abias[3];
+    double gbias[3];
 
 	// LSM9DS0 -- LSM9DS0 class constructor
 	// The constructor will set up a handful of private variables, and set the
@@ -358,7 +358,7 @@ public:
 						  uint8_t duration = 0);
 
 
-        void calLSM9DS0(float gbias[3], float abias[3]);
+        void calLSM9DS0(double gbias[3], double abias[3]);
 
 
 private:	

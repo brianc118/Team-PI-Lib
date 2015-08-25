@@ -83,12 +83,12 @@ public:
 			if (!toggleBorderMode){
 				if (pressed){
 					drawBorder();
-					Serial.println("pressed");
+					//Serial.println("pressed");
 				}
 				else if (released){
 					// if just been released remove border
 					eraseBorder();
-					Serial.println("released");
+					//Serial.println("released");
 				}
 			}
 			else{

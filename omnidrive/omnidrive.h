@@ -29,7 +29,6 @@
 #ifndef OMNIDRIVE_H
 #define OMNIDRIVE_H
 
-#include "Arduino.h"
 #include "fastTrig.h"
 
 // #include <math.h>

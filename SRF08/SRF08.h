@@ -26,7 +26,7 @@ class SRF08
 		void getLight(int16_t &lightReading);
 		void getSoft(uint8_t &softRev);
 		bool autoGetStartIfCan(int16_t &range);
-		void setRange(uint16_t cm);
+		void setRange(uint8_t cm);
 		void setAddress(uint8_t address);
     private:
 		uint8_t address;

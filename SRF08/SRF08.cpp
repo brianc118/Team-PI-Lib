@@ -151,10 +151,10 @@ bool SRF08::autoGetStartIfCan(int16_t &range){
 	}
 }
 
-void SRF08::setRange(uint16_t cm){
+void SRF08::setRange(uint8_t rr){
 	Wire.beginTransmission(address);
 	Wire.write(CHANGERANGEBYTE);
-	Wire.write((uint8_t)(cm * 255 / 1100));
+	Wire.write(rr);
 	Wire.endTransmission(I2C_STOP, SRF08_I2C_TIMOUT);
 }
 
